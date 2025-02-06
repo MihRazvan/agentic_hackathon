@@ -51,8 +51,8 @@ def test_tally_api():
         vote_stats = client.get_vote_participation_stats(org_id)
         print_result(vote_stats)
         
-        # Test getting delegation info for a sample address
-        sample_address = "0xF7B2c6EC553da81F645f86E3CA38bE0d44bAEDf1"
+        # Test getting delegation info for a sample address (Active Arbitrum delegate)
+        sample_address = "0x8c595DA827F4182bC0E3917BccA8e654DF8223E1"
         print_section(f"Delegate Info for {sample_address}")
         delegate = client.get_delegate_info(sample_address, org_id)
         print_result(delegate)

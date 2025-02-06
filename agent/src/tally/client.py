@@ -156,7 +156,7 @@ class TallyClient:
         }
         return self._execute_query(query, variables)
 
-    def get_vote_participation_stats(self, organization_id: str) -> Dict[str, Any]:
+    def get_vote_participation_stats(self, organization_id: str, governor_id: str = None) -> Dict[str, Any]:
         """Gets comprehensive voting participation statistics."""
         query = """
         query GetVoteStats($input: VotesInput!) {
@@ -167,7 +167,7 @@ class TallyClient:
                         type
                         voter {
                             address
-                            votes
+                            votes(governorId: $governorId)
                         }
                         proposal {
                             metadata {
@@ -187,12 +187,26 @@ class TallyClient:
             }
         }
         """
+        
+        # If governor_id is not provided, let's get it from the organization
+        if not governor_id:
+            org_data = self.get_dao_metadata(organization_id)
+            if org_data and 'data' in org_data and 'organization' in org_data['data']:
+                governor_ids = org_data['data']['organization'].get('governorIds', [])
+                if governor_ids:
+                    governor_id = governor_ids[0]
+
+        if not governor_id:
+            print("No governor ID available for vote stats")
+            return None
+
         variables = {
             "input": {
                 "filters": {
                     "organizationId": organization_id
                 }
-            }
+            },
+            "governorId": governor_id
         }
         return self._execute_query(query, variables)
 
