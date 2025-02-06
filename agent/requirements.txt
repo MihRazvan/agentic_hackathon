@@ -1,3 +1,17 @@
+# Core CDP and AI dependencies
+cdp-sdk>=0.0.13
+cdp-langchain>=0.0.13
+langchain>=0.1.0
+langchain-anthropic>=0.0.1
+
+# API and data handling
 python-dotenv>=1.0.0
-gql[aiohttp]>=3.4.0
 requests>=2.31.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.1
+
+# Type checking and development tools
+mypy>=1.5.1
+black>=23.7.0
