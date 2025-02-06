@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional, List
 import requests
 from dotenv import load_dotenv
 import json
+from datetime import datetime
 
 class TallyClient:
     def __init__(self):
@@ -19,7 +20,7 @@ class TallyClient:
         }
 
     def get_dao_metadata(self, organization_id: str) -> Dict[str, Any]:
-        """Gets basic DAO information like treasury size, holders, etc."""
+        """Gets comprehensive DAO information."""
         query = """
         query GetDAOData($input: OrganizationInput!) {
             organization(input: $input) {
@@ -30,9 +31,11 @@ class TallyClient:
                 delegatesCount
                 tokenOwnersCount
                 hasActiveProposals
+                governorIds
                 metadata {
                     description
                     icon
+                    color
                 }
             }
         }
@@ -46,7 +49,7 @@ class TallyClient:
         return self._execute_query(query, variables)
 
     def get_active_proposals(self, organization_id: str) -> Dict[str, Any]:
-        """Gets active proposals for a DAO with proper fragment handling."""
+        """Gets active proposals with comprehensive details."""
         query = """
         query GetActiveProposals($input: ProposalsInput!) {
             proposals(input: $input) {
@@ -56,6 +59,7 @@ class TallyClient:
                         metadata {
                             title
                             description
+                            ipfsHash
                         }
                         status
                         start {
@@ -77,7 +81,14 @@ class TallyClient:
                         voteStats {
                             type
                             votesCount
+                            votersCount
                             percent
+                        }
+                        executableCalls {
+                            calldata
+                            signature
+                            target
+                            value
                         }
                     }
                 }
@@ -95,7 +106,7 @@ class TallyClient:
         return self._execute_query(query, variables)
 
     def get_historical_proposals(self, organization_id: str, limit: int = 10) -> Dict[str, Any]:
-        """Gets historical proposals for analysis."""
+        """Gets historical proposals with detailed analytics."""
         query = """
         query GetProposals($input: ProposalsInput!) {
             proposals(input: $input) {
@@ -105,12 +116,22 @@ class TallyClient:
                         metadata {
                             title
                             description
+                            ipfsHash
                         }
                         status
                         voteStats {
                             type
                             votesCount
+                            votersCount
                             percent
+                        }
+                        creator {
+                            address
+                            name
+                        }
+                        events {
+                            type
+                            createdAt
                         }
                     }
                 }
@@ -135,16 +156,79 @@ class TallyClient:
         }
         return self._execute_query(query, variables)
 
+    def get_vote_participation_stats(self, organization_id: str) -> Dict[str, Any]:
+        """Gets comprehensive voting participation statistics."""
+        query = """
+        query GetVoteStats($input: VotesInput!) {
+            votes(input: $input) {
+                nodes {
+                    ... on Vote {
+                        amount
+                        type
+                        voter {
+                            address
+                            votesCount
+                        }
+                        proposal {
+                            metadata {
+                                title
+                            }
+                            status
+                        }
+                        block {
+                            timestamp
+                        }
+                        reason
+                    }
+                }
+                pageInfo {
+                    count
+                }
+            }
+        }
+        """
+        variables = {
+            "input": {
+                "filters": {
+                    "organizationId": organization_id
+                }
+            }
+        }
+        return self._execute_query(query, variables)
+
+    def get_token_info(self, organization_id: str) -> Dict[str, Any]:
+        """Gets detailed token and treasury information."""
+        query = """
+        query GetTokenInfo($input: OrganizationInput!) {
+            organization(input: $input) {
+                tokenIds
+                governorIds
+            }
+        }
+        """
+        variables = {
+            "input": {
+                "id": organization_id
+            }
+        }
+        return self._execute_query(query, variables)
+
     def get_delegate_info(self, address: str, organization_id: str) -> Dict[str, Any]:
-        """Gets delegation info for an address in a specific DAO."""
+        """Gets comprehensive delegation information."""
         query = """
         query GetDelegate($input: DelegateInput!) {
             delegate(input: $input) {
                 delegatorsCount
                 votesCount
+                account {
+                    address
+                    name
+                    ens
+                }
                 governor {
                     name
                     tokenId
+                    type
                 }
                 organization {
                     name
@@ -153,6 +237,11 @@ class TallyClient:
                 token {
                     symbol
                     name
+                    supply
+                }
+                statement {
+                    statement
+                    isSeekingDelegation
                 }
             }
         }
@@ -166,44 +255,82 @@ class TallyClient:
         }
         return self._execute_query(query, variables)
 
-    def get_delegates(self, organization_id: str, limit: int = 10) -> Dict[str, Any]:
-        """Gets list of delegates for a DAO."""
+    def get_delegation_history(self, address: str, organization_id: str) -> Dict[str, Any]:
+        """Gets historical delegation data."""
         query = """
-        query GetDelegates($input: DelegatesInput!) {
-            delegates(input: $input) {
+        query GetDelegationHistory($input: DelegationsInput!) {
+            delegators(input: $input) {
                 nodes {
-                    ... on Delegate {
-                        account {
+                    ... on Delegation {
+                        votes
+                        blockTimestamp
+                        delegator {
                             address
                             name
                         }
-                        votesCount
-                        delegatorsCount
+                        token {
+                            symbol
+                            name
+                        }
                     }
                 }
                 pageInfo {
-                    firstCursor
-                    lastCursor
                     count
                 }
             }
         }
         """
-        
         variables = {
             "input": {
                 "filters": {
+                    "address": address,
                     "organizationId": organization_id
-                },
-                "page": {
-                    "limit": limit
+                }
+            }
+        }
+        return self._execute_query(query, variables)
+
+    def get_user_governance_activity(self, address: str) -> Dict[str, Any]:
+        """Gets comprehensive user participation data."""
+        query = """
+        query GetUserActivity($input: VotesInput!) {
+            votes(input: $input) {
+                nodes {
+                    ... on Vote {
+                        proposal {
+                            metadata {
+                                title
+                            }
+                            status
+                            organization {
+                                name
+                            }
+                        }
+                        type
+                        amount
+                        reason
+                        block {
+                            timestamp
+                        }
+                    }
+                }
+                pageInfo {
+                    count
+                }
+            }
+        }
+        """
+        variables = {
+            "input": {
+                "filters": {
+                    "voter": address
                 }
             }
         }
         return self._execute_query(query, variables)
 
     def _execute_query(self, query: str, variables: Dict) -> Dict:
-        """Helper function to execute GraphQL queries with error handling."""
+        """Enhanced helper function to execute GraphQL queries."""
         try:
             response = requests.post(
                 self.endpoint,
@@ -212,17 +339,15 @@ class TallyClient:
                     'variables': variables
                 },
                 headers=self.headers,
-                timeout=10  # Add timeout
+                timeout=10
             )
             
-            # Check if response is JSON
             try:
                 data = response.json()
             except json.JSONDecodeError:
                 print(f"Error: Invalid JSON response")
                 return None
 
-            # Check for successful response
             if response.status_code == 200:
                 if 'errors' in data:
                     print(f"GraphQL Errors: {data['errors']}")
@@ -243,9 +368,51 @@ class TallyClient:
             print(f"Unexpected error: {e}")
             return None
 
-    # Helper methods for data analysis
+    def aggregate_dao_analytics(self, organization_id: str) -> Dict[str, Any]:
+        """Aggregates comprehensive DAO analytics."""
+        try:
+            # Gather all relevant data
+            dao_info = self.get_dao_metadata(organization_id)
+            proposals = self.get_historical_proposals(organization_id)
+            token_info = self.get_token_info(organization_id)
+            vote_stats = self.get_vote_participation_stats(organization_id)
+            
+            if not all([dao_info, proposals, token_info, vote_stats]):
+                return {}
+            
+            # Process vote statistics
+            votes_data = vote_stats.get('data', {}).get('votes', {}).get('nodes', [])
+            vote_types = {}
+            participation_over_time = {}
+            
+            for vote in votes_data:
+                vote_type = vote.get('type')
+                timestamp = vote.get('block', {}).get('timestamp')
+                if vote_type and timestamp:
+                    vote_types[vote_type] = vote_types.get(vote_type, 0) + 1
+                    date = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
+                    participation_over_time[date] = participation_over_time.get(date, 0) + 1
+            
+            # Combine all analytics
+            analytics = {
+                "basic_info": dao_info.get('data', {}).get('organization', {}),
+                "governance_stats": {
+                    "proposals": self.format_proposal_stats(proposals),
+                    "token_info": token_info.get('data', {}).get('organization', {}),
+                    "voting_patterns": {
+                        "vote_types": vote_types,
+                        "participation_trend": participation_over_time
+                    }
+                }
+            }
+            
+            return analytics
+        except Exception as e:
+            print(f"Error aggregating DAO analytics: {e}")
+            return {}
+
     def format_proposal_stats(self, proposal_data: Dict) -> Dict[str, Any]:
-        """Formats proposal statistics into a more readable format."""
+        """Formats proposal data into detailed analytics."""
         if not proposal_data or 'data' not in proposal_data:
             return {}
             
@@ -256,6 +423,7 @@ class TallyClient:
                 formatted['total_proposals'] = len(proposals)
                 formatted['status_counts'] = {}
                 formatted['vote_distribution'] = {}
+                formatted['proposal_timeline'] = []
                 
                 for proposal in proposals:
                     # Count statuses
@@ -269,15 +437,32 @@ class TallyClient:
                         if vote_type:
                             if vote_type not in formatted['vote_distribution']:
                                 formatted['vote_distribution'][vote_type] = []
-                            formatted['vote_distribution'][vote_type].append(float(stat.get('percent', 0)))
-                            
+                            formatted['vote_distribution'][vote_type].append({
+                                'percent': float(stat.get('percent', 0)),
+                                'votes': stat.get('votesCount', 0),
+                                'voters': stat.get('votersCount', 0)
+                            })
+                    
+                    # Timeline data
+                    if proposal.get('start') and proposal.get('end'):
+                        formatted['proposal_timeline'].append({
+                            'id': proposal.get('id'),
+                            'title': proposal.get('metadata', {}).get('title'),
+                            'start': proposal['start'].get('timestamp'),
+                            'end': proposal['end'].get('timestamp'),
+                            'status': status
+                        })
+                
                 # Calculate averages for vote distributions
                 for vote_type in formatted['vote_distribution']:
                     votes = formatted['vote_distribution'][vote_type]
-                    formatted['vote_distribution'][vote_type] = {
-                        'average': sum(votes) / len(votes) if votes else 0,
-                        'count': len(votes)
-                    }
+                    if votes:
+                        formatted['vote_distribution'][vote_type] = {
+                            'average_percent': sum(v['percent'] for v in votes) / len(votes),
+                            'total_votes': sum(int(v['votes']) for v in votes),
+                            'total_voters': sum(v['voters'] for v in votes),
+                            'occurrences': len(votes)
+                        }
                     
             return formatted
             
@@ -286,11 +471,16 @@ class TallyClient:
             return {}
 
     def get_key_daos(self) -> List[str]:
-        """Returns a list of key DAOs on Arbitrum."""
+        """Returns a list of key DAOs on Arbitrum and Base."""
         return [
+            # Arbitrum DAOs
             "arbitrum",
             "gmx-governance", 
             "jones-dao",
             "camelot",
-            "radiant"
+            "radiant",
+            # Base DAOs
+            "base",
+            "aerodrome",
+            "baseswap"
         ]
