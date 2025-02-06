@@ -167,7 +167,7 @@ class TallyClient:
                         type
                         voter {
                             address
-                            votesCount
+                            votes
                         }
                         proposal {
                             metadata {
@@ -290,8 +290,35 @@ class TallyClient:
         }
         return self._execute_query(query, variables)
 
-    def get_user_governance_activity(self, address: str) -> Dict[str, Any]:
+    def get_user_governance_activity(self, address: str, organization_id: str) -> Dict[str, Any]:
         """Gets comprehensive user participation data."""
+        # First get proposals for the organization
+        proposals_query = """
+        query GetProposals($input: ProposalsInput!) {
+            proposals(input: $input) {
+                nodes {
+                    ... on Proposal {
+                        id
+                    }
+                }
+            }
+        }
+        """
+        proposals_vars = {
+            "input": {
+                "filters": {
+                    "organizationId": organization_id
+                }
+            }
+        }
+        
+        proposals_data = self._execute_query(proposals_query, proposals_vars)
+        if not proposals_data or 'data' not in proposals_data:
+            return None
+            
+        proposal_ids = [p['id'] for p in proposals_data['data']['proposals']['nodes']]
+        
+        # Then get votes for these proposals
         query = """
         query GetUserActivity($input: VotesInput!) {
             votes(input: $input) {
@@ -323,7 +350,8 @@ class TallyClient:
         variables = {
             "input": {
                 "filters": {
-                    "voter": address
+                    "voter": address,
+                    "proposalIds": proposal_ids
                 }
             }
         }
@@ -373,11 +401,14 @@ class TallyClient:
         try:
             # Gather all relevant data
             dao_info = self.get_dao_metadata(organization_id)
+            if not dao_info or 'data' not in dao_info or not dao_info['data'].get('organization'):
+                print("Organization not found or invalid organization ID")
+                return {}
+                
             proposals = self.get_historical_proposals(organization_id)
             token_info = self.get_token_info(organization_id)
-            vote_stats = self.get_vote_participation_stats(organization_id)
             
-            if not all([dao_info, proposals, token_info, vote_stats]):
+            if not all([proposals, token_info]):
                 return {}
             
             # Process vote statistics
