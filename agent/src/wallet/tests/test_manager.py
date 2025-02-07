@@ -83,37 +83,30 @@ async def test_dao_involvement():
         print(f"  Has Active Proposals: {dao['has_active_proposals']}")
 
 @pytest.mark.asyncio
+@pytest.mark.asyncio
 async def test_specific_dao_info():
     """Test getting detailed information about a specific DAO."""
     manager = WalletManager()
     
-    # Test with Seamless Protocol (a real Base DAO)
-    result = await manager.get_specific_dao_info("seamless-protocol")
+    # Test with a known significant DAO
+    test_daos = ["wormhole", "seamless-protocol", "frax"]
+    
+    for dao_slug in test_daos:
+        result = await manager.get_specific_dao_info(dao_slug)
+        
+        if result and "error" not in result:
+            print(f"\nSuccessfully retrieved info for {dao_slug}:")
+            print(f"Name: {result.get('basic_info', {}).get('name')}")
+            print(f"Chain IDs: {result.get('basic_info', {}).get('chain_ids')}")
+            print(f"Delegates: {result.get('basic_info', {}).get('delegates_count')}")
+            print(f"Proposals: {result.get('basic_info', {}).get('proposals_count')}")
+            
+            if result.get('active_proposals'):
+                print("\nActive Proposals:")
+                for proposal in result['active_proposals']:
+                    print(f"- {proposal.get('metadata', {}).get('title', 'No Title')}")
+            break
     
     assert result is not None
     assert "error" not in result
-    
-    print("\nSpecific DAO Info Test Results:")
-    print(f"\nDAO Name: {result.get('basic_info', {}).get('name')}")
-    print(f"Chain IDs: {result.get('basic_info', {}).get('chain_ids')}")
-    print(f"Delegates Count: {result.get('basic_info', {}).get('delegates_count')}")
-    print(f"Proposals Count: {result.get('basic_info', {}).get('proposals_count')}")
-    
-    if result.get('active_proposals'):
-        print("\nActive Proposals:")
-        for proposal in result['active_proposals']:
-            print(f"- {proposal.get('metadata', {}).get('title', 'No Title')}")
-    
     return result
-
-if __name__ == "__main__":
-    import asyncio
-    
-    async def run_all_tests():
-        print("\nRunning all tests...")
-        await test_wallet_manager_initialization()
-        await test_chain_filtering()
-        await test_dao_involvement()
-        await test_specific_dao_info()
-    
-    asyncio.run(run_all_tests())

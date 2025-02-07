@@ -166,3 +166,38 @@ class WalletManager:
             
         except Exception as e:
             return {"error": str(e)}
+        
+    def _is_significant_dao(self, dao: Dict) -> bool:
+        """Filter for significant mainnet DAOs."""
+        # Skip test/mock/inactive DAOs
+        skip_keywords = ['test', 'mock', 'demo', 'fork']
+        if any(keyword in dao.get('name', '').lower() for keyword in skip_keywords):
+            return False
+        
+        # Must have either significant delegates or proposals
+        min_delegates = 100  # Only DAOs with substantial delegation
+        min_proposals = 5    # Only DAOs with governance history
+        
+        # Special cases - always include major DAOs
+        major_daos = ['frax', 'arbitrum', 'base', 'gmx', 'wormhole', 'seamless-protocol']
+        if dao.get('slug') in major_daos:
+            return True
+        
+        return (
+            dao.get('delegates_count', 0) >= min_delegates or 
+            dao.get('proposals_count', 0) >= min_proposals
+        )
+
+    def filter_supported_networks(self, chain_id: str = None) -> Dict[str, Dict[str, str]]:
+        """Filter networks based on chain ID and significance."""
+        filtered = {}
+        for slug, data in self.supported_networks.items():
+            # If chain_id is specified, only include DAOs on that chain
+            if chain_id and chain_id not in data['chain_ids']:
+                continue
+                
+            # Only include significant DAOs
+            if self._is_significant_dao(data):
+                filtered[slug] = data
+                
+        return filtered
