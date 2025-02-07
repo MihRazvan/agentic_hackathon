@@ -1,4 +1,5 @@
 # agent/src/wallet/tests/test_manager.py
+
 import os
 import sys
 import pytest
@@ -19,8 +20,12 @@ async def test_wallet_manager_initialization():
     assert manager.supported_networks is not None
     assert len(manager.supported_networks) > 0
     
-    # Print available networks for manual verification
-    print("\nSupported Networks Count:", len(manager.supported_networks))
+    # Verify we have major DAOs
+    major_daos = manager.tally_client.major_daos
+    found_daos = [slug for slug in manager.supported_networks.keys() if slug in major_daos]
+    assert len(found_daos) > 0, "No major DAOs found"
+    
+    print(f"\nFound {len(found_daos)} major DAOs out of {len(manager.supported_networks)} total DAOs")
 
 @pytest.mark.asyncio
 async def test_chain_filtering():
@@ -28,16 +33,26 @@ async def test_chain_filtering():
     manager = WalletManager()
     
     # Test Arbitrum filtering
-    arbitrum_daos = manager.filter_supported_networks("eip155:42161")  # Arbitrum chain ID
+    arbitrum_daos = manager.filter_supported_networks("eip155:42161")
     print("\nArbitrum DAOs:")
     for slug, data in arbitrum_daos.items():
-        print(f"- {data['name']} ({slug})")
+        if data['delegates_count'] >= 50 or data['proposals_count'] >= 10:
+            print(f"- {data['name']} ({slug})")
+            print(f"  Delegates: {data['delegates_count']}")
+            print(f"  Proposals: {data['proposals_count']}")
     
     # Test Base filtering
-    base_daos = manager.filter_supported_networks("eip155:8453")  # Base chain ID
+    base_daos = manager.filter_supported_networks("eip155:8453")
     print("\nBase DAOs:")
     for slug, data in base_daos.items():
-        print(f"- {data['name']} ({slug})")
+        if data['delegates_count'] >= 50 or data['proposals_count'] >= 10:
+            print(f"- {data['name']} ({slug})")
+            print(f"  Delegates: {data['delegates_count']}")
+            print(f"  Proposals: {data['proposals_count']}")
+
+    # Verify we have DAOs on both chains
+    assert len(arbitrum_daos) > 0, "No Arbitrum DAOs found"
+    assert len(base_daos) > 0, "No Base DAOs found"
 
 @pytest.mark.asyncio
 async def test_dao_involvement():
@@ -82,7 +97,6 @@ async def test_dao_involvement():
         print(f"  Proposals Count: {dao['proposals_count']}")
         print(f"  Has Active Proposals: {dao['has_active_proposals']}")
 
-@pytest.mark.asyncio
 @pytest.mark.asyncio
 async def test_specific_dao_info():
     """Test getting detailed information about a specific DAO."""

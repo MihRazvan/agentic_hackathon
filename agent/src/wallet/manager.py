@@ -1,3 +1,4 @@
+
 from typing import Dict, List, Any
 from ..tally.client import TallyClient
 
@@ -6,8 +7,25 @@ class WalletManager:
         self.tally_client = TallyClient()
         self.supported_networks = self._get_supported_networks()
     
+    def _is_significant_dao(self, dao: Dict) -> bool:
+        """Filter for significant mainnet DAOs."""
+        # Skip test/mock/inactive DAOs
+        skip_keywords = ['test', 'mock', 'demo', 'fork', 'club']
+        if any(keyword in dao.get('name', '').lower() for keyword in skip_keywords):
+            return False
+        
+        # Major DAOs - always include
+        if dao.get('slug') in self.tally_client.major_daos:
+            return True
+        
+        # Either significant delegates or proposals
+        has_significant_delegates = dao.get('delegates_count', 0) >= 50
+        has_significant_proposals = dao.get('proposals_count', 0) >= 10
+        
+        return has_significant_delegates or has_significant_proposals
+    
     def _get_supported_networks(self) -> Dict[str, Dict[str, str]]:
-        """Get a list of all available DAOs and their IDs."""
+        """Get a list of significant DAOs and their IDs."""
         try:
             # Get all organizations
             query_result = self.tally_client.get_organizations()
@@ -19,16 +37,17 @@ class WalletManager:
             
             for org in organizations:
                 if org.get('slug') and org.get('id'):
-                    networks[org['slug']] = {
-                        'id': org['id'],
-                        'name': org['name'],
-                        'chain_ids': org.get('chainIds', []),
-                        'delegates_count': org.get('delegatesCount', 0),
-                        'proposals_count': org.get('proposalsCount', 0),
-                        'has_active_proposals': org.get('hasActiveProposals', False)
-                    }
+                    if self._is_significant_dao(org):
+                        networks[org['slug']] = {
+                            'id': org['id'],
+                            'name': org['name'],
+                            'chain_ids': org.get('chainIds', []),
+                            'delegates_count': org.get('delegatesCount', 0),
+                            'proposals_count': org.get('proposalsCount', 0),
+                            'has_active_proposals': org.get('hasActiveProposals', False)
+                        }
             
-            print("\nAvailable DAOs:")
+            print("\nSignificant DAOs:")
             for slug, data in networks.items():
                 print(f"- {data['name']} (slug: {slug}, id: {data['id']})")
                 print(f"  Chains: {', '.join(data['chain_ids'])}")
@@ -41,6 +60,17 @@ class WalletManager:
         except Exception as e:
             print(f"Error getting organizations: {str(e)}")
             return {}
+            
+    def filter_supported_networks(self, chain_id: str = None) -> Dict[str, Dict[str, str]]:
+        """Filter networks based on chain ID."""
+        filtered = {}
+        for slug, data in self.supported_networks.items():
+            # If chain_id is specified, only include DAOs on that chain
+            if chain_id and chain_id not in data['chain_ids']:
+                continue
+            filtered[slug] = data
+            
+        return filtered
     
     def _process_delegation_info(self, delegate_info: Dict) -> Dict:
         """Process and clean delegation information."""
@@ -166,38 +196,3 @@ class WalletManager:
             
         except Exception as e:
             return {"error": str(e)}
-        
-    def _is_significant_dao(self, dao: Dict) -> bool:
-        """Filter for significant mainnet DAOs."""
-        # Skip test/mock/inactive DAOs
-        skip_keywords = ['test', 'mock', 'demo', 'fork']
-        if any(keyword in dao.get('name', '').lower() for keyword in skip_keywords):
-            return False
-        
-        # Must have either significant delegates or proposals
-        min_delegates = 100  # Only DAOs with substantial delegation
-        min_proposals = 5    # Only DAOs with governance history
-        
-        # Special cases - always include major DAOs
-        major_daos = ['frax', 'arbitrum', 'base', 'gmx', 'wormhole', 'seamless-protocol']
-        if dao.get('slug') in major_daos:
-            return True
-        
-        return (
-            dao.get('delegates_count', 0) >= min_delegates or 
-            dao.get('proposals_count', 0) >= min_proposals
-        )
-
-    def filter_supported_networks(self, chain_id: str = None) -> Dict[str, Dict[str, str]]:
-        """Filter networks based on chain ID and significance."""
-        filtered = {}
-        for slug, data in self.supported_networks.items():
-            # If chain_id is specified, only include DAOs on that chain
-            if chain_id and chain_id not in data['chain_ids']:
-                continue
-                
-            # Only include significant DAOs
-            if self._is_significant_dao(data):
-                filtered[slug] = data
-                
-        return filtered

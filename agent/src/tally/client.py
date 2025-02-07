@@ -20,8 +20,40 @@ class TallyClient:
             'Content-Type': 'application/json',
         }
 
+# agent/src/tally/client.py
+
+from typing import Dict, List, Any
+import requests
+import json
+from dotenv import load_dotenv
+import os
+
+class TallyClient:
+    def __init__(self):
+        # Load environment variables
+        load_dotenv()
+        self.api_key = os.getenv('TALLY_API_KEY')
+        if not self.api_key:
+            raise ValueError("TALLY_API_KEY not found in environment variables")
+            
+        self.endpoint = "https://api.tally.xyz/query"
+        self.headers = {
+            'Api-Key': self.api_key,
+            'Content-Type': 'application/json',
+        }
+        
+        # Known significant DAOs
+        self.major_daos = [
+            'seamless-protocol',
+            'internet-token-dao',
+            'gloom',
+            'uxd-arbitrum-one-council',
+            'cora-protocol-dao',
+            'wormhole'
+        ]
+
     def get_organizations(self) -> Dict[str, Any]:
-        """Gets list of significant organizations on mainnet."""
+        """Gets list of significant mainnet organizations."""
         query = """
         query Organizations($input: OrganizationsInput) {
             organizations(input: $input) {
