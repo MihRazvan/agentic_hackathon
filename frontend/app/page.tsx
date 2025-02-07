@@ -26,16 +26,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use the provided test address
-  const testAddress = '0x746bb7beFD31D9052BB8EbA7D5dD74C9aCf54C6d';
-  const activeAddress = address || testAddress;
-
   useEffect(() => {
     async function fetchDelegations() {
       try {
         setLoading(true);
         setError(null);
-        const data = await getDelegations(activeAddress);
+        const data = await getDelegations(address);
         setDelegationsData(data);
       } catch (err) {
         setError('Failed to fetch delegations data');
@@ -45,10 +41,14 @@ export default function App() {
       }
     }
 
-    if (activeAddress) {
+    if (address) {
       fetchDelegations();
+    } else {
+      // Reset data when wallet is disconnected
+      setDelegationsData(null);
+      setError(null);
     }
-  }, [activeAddress]);
+  }, [address]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -92,103 +92,124 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 p-4">
         <div className="max-w-7xl mx-auto space-y-6">
-          {error && (
-            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500 text-red-500">
-              {error}
+          {!address ? (
+            <div className="glass-card rounded-lg p-8 text-center">
+              <h2 className="text-xl font-semibold mb-4">Connect Your Wallet</h2>
+              <p className="text-gray-400 mb-6">Connect your wallet to view your DAO delegations and recommendations</p>
             </div>
-          )}
-
-          {/* DAO Delegations Section */}
-          <section className="glass-card rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Your DAO Delegations</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {loading ? (
-                <div className="col-span-full text-center py-8 text-gray-400">
-                  Loading delegations...
+          ) : (
+            <>
+              {error && (
+                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500 text-red-500">
+                  {error}
                 </div>
-              ) : delegationsData?.active_delegations.map((delegation, i) => (
-                <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
-                  <h3 className="font-medium">{delegation.dao_name}</h3>
-                  <p className="text-sm text-gray-400">{delegation.token_amount}</p>
-                  {delegation.has_active_proposals && (
-                    <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
-                      Active Proposals
+              )}
+
+              {/* DAO Delegations Section */}
+              <section className="glass-card rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Your DAO Delegations</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {loading ? (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      Loading delegations...
+                    </div>
+                  ) : delegationsData?.active_delegations.length ? (
+                    delegationsData.active_delegations.map((delegation, i) => (
+                      <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
+                        <h3 className="font-medium">{delegation.dao_name}</h3>
+                        <p className="text-sm text-gray-400">{delegation.token_amount}</p>
+                        {delegation.has_active_proposals && (
+                          <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
+                            Active Proposals
+                          </div>
+                        )}
+                        {delegation.proposals_count !== undefined && (
+                          <p className="text-sm text-gray-400 mt-2">
+                            {delegation.proposals_count} total proposals
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      No active delegations found
                     </div>
                   )}
-                  {delegation.proposals_count !== undefined && (
-                    <p className="text-sm text-gray-400 mt-2">
-                      {delegation.proposals_count} total proposals
-                    </p>
-                  )}
                 </div>
-              ))}
-            </div>
-          </section>
+              </section>
 
-          {/* Potential Delegations Section */}
-          <section className="glass-card rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Recommended Delegations</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {loading ? (
-                <div className="col-span-full text-center py-8 text-gray-400">
-                  Loading recommendations...
-                </div>
-              ) : delegationsData?.recommended_delegations.map((delegation, i) => (
-                <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
-                  <h3 className="font-medium">{delegation.dao_name}</h3>
-                  <p className="text-sm text-gray-400">{delegation.token_amount}</p>
-                  {delegation.has_active_proposals && (
-                    <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
-                      Active Proposals
+              {/* Potential Delegations Section */}
+              <section className="glass-card rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Recommended Delegations</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {loading ? (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      Loading recommendations...
+                    </div>
+                  ) : delegationsData?.recommended_delegations.length ? (
+                    delegationsData.recommended_delegations.map((delegation, i) => (
+                      <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
+                        <h3 className="font-medium">{delegation.dao_name}</h3>
+                        <p className="text-sm text-gray-400">{delegation.token_amount}</p>
+                        {delegation.has_active_proposals && (
+                          <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
+                            Active Proposals
+                          </div>
+                        )}
+                        {delegation.proposals_count !== undefined && (
+                          <p className="text-sm text-gray-400 mt-2">
+                            {delegation.proposals_count} total proposals
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      No recommendations available
                     </div>
                   )}
-                  {delegation.proposals_count !== undefined && (
-                    <p className="text-sm text-gray-400 mt-2">
-                      {delegation.proposals_count} total proposals
-                    </p>
-                  )}
                 </div>
-              ))}
-            </div>
-          </section>
+              </section>
 
-          {/* Updates and Chat Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* DAO Updates */}
-            <section className="glass-card rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">DAO Updates</h2>
-              <div className="space-y-4">
-                {/* We'll integrate this with real updates later */}
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
-                    <h3 className="font-medium">Update {i}</h3>
-                    <p className="text-sm text-gray-400">Lorem ipsum dolor sit amet</p>
+              {/* Updates and Chat Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* DAO Updates */}
+                <section className="glass-card rounded-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">DAO Updates</h2>
+                  <div className="space-y-4">
+                    {/* We'll integrate this with real updates later */}
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
+                        <h3 className="font-medium">Update {i}</h3>
+                        <p className="text-sm text-gray-400">Lorem ipsum dolor sit amet</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </section>
+                </section>
 
-            {/* AI Chat */}
-            <section className="glass-card rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Governance Assistant</h2>
-              <div className="h-[400px] flex flex-col">
-                <div className="flex-1 overflow-y-auto p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] mb-4">
-                  {/* Chat messages will go here */}
-                  <p className="text-gray-400">Ask me anything about DAO governance...</p>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type your question..."
-                    className="flex-1 px-4 py-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)]"
-                  />
-                  <button className="px-4 py-2 rounded-lg alchemical-gradient text-white">
-                    Send
-                  </button>
-                </div>
+                {/* AI Chat */}
+                <section className="glass-card rounded-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">Governance Assistant</h2>
+                  <div className="h-[400px] flex flex-col">
+                    <div className="flex-1 overflow-y-auto p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] mb-4">
+                      {/* Chat messages will go here */}
+                      <p className="text-gray-400">Ask me anything about DAO governance...</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Type your question..."
+                        className="flex-1 px-4 py-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)]"
+                      />
+                      <button className="px-4 py-2 rounded-lg alchemical-gradient text-white">
+                        Send
+                      </button>
+                    </div>
+                  </div>
+                </section>
               </div>
-            </section>
-          </div>
+            </>
+          )}
         </div>
       </main>
     </div>
