@@ -6,11 +6,17 @@ from cdp_langchain.utils import CdpAgentkitWrapper
 from langchain_anthropic import ChatAnthropic
 from ..tally.client import TallyClient
 
+from typing import Dict, Any, Optional
+from cdp_langchain.agent_toolkits import CdpToolkit
+from cdp_langchain.utils import CdpAgentkitWrapper
+from langchain_openai import ChatOpenAI  # Changed from ChatAnthropic
+from ..tally.client import TallyClient
+
 class TabulaAgent:
     def __init__(self, cdp_credentials: Dict[str, Any]):
-        # Initialize AI Model (Claude)
-        self.llm = ChatAnthropic(
-            model="claude-3-sonnet-20240229",
+        # Initialize AI Model (GPT-4 or GPT-3.5-turbo)
+        self.llm = ChatOpenAI(
+            model="gpt-4",  # or "gpt-3.5-turbo" for faster/cheaper responses
             temperature=0
         )
         
