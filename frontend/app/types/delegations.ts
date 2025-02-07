@@ -10,5 +10,6 @@ export interface DelegationResponse {
 
 export interface DelegationsData {
     active_delegations: DelegationResponse[];
+    available_delegations: DelegationResponse[];
     recommended_delegations: DelegationResponse[];
 }

@@ -44,11 +44,27 @@ export default function App() {
     if (address) {
       fetchDelegations();
     } else {
-      // Reset data when wallet is disconnected
       setDelegationsData(null);
       setError(null);
     }
   }, [address]);
+
+  const renderDaoCard = (delegation: any) => (
+    <div className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--metallic-silver)] transition-colors">
+      <h3 className="font-medium">{delegation.dao_name}</h3>
+      <p className="text-sm text-gray-400">{delegation.token_amount}</p>
+      {delegation.has_active_proposals && (
+        <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
+          Active Proposals
+        </div>
+      )}
+      {delegation.proposals_count !== undefined && (
+        <p className="text-sm text-gray-400 mt-2">
+          {delegation.proposals_count} total proposals
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -105,64 +121,54 @@ export default function App() {
                 </div>
               )}
 
-              {/* DAO Delegations Section */}
+              {/* Active Delegations Section */}
               <section className="glass-card rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Your DAO Delegations</h2>
+                <h2 className="text-xl font-semibold mb-4">Your Active Delegations</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {loading ? (
                     <div className="col-span-full text-center py-8 text-gray-400">
                       Loading delegations...
                     </div>
                   ) : delegationsData?.active_delegations.length ? (
-                    delegationsData.active_delegations.map((delegation, i) => (
-                      <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
-                        <h3 className="font-medium">{delegation.dao_name}</h3>
-                        <p className="text-sm text-gray-400">{delegation.token_amount}</p>
-                        {delegation.has_active_proposals && (
-                          <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
-                            Active Proposals
-                          </div>
-                        )}
-                        {delegation.proposals_count !== undefined && (
-                          <p className="text-sm text-gray-400 mt-2">
-                            {delegation.proposals_count} total proposals
-                          </p>
-                        )}
-                      </div>
-                    ))
+                    delegationsData.active_delegations.map((delegation, i) => renderDaoCard(delegation))
                   ) : (
                     <div className="col-span-full text-center py-8 text-gray-400">
-                      No active delegations found
+                      You haven't delegated to any DAOs yet
                     </div>
                   )}
                 </div>
               </section>
 
-              {/* Potential Delegations Section */}
+              {/* Available Delegations Section */}
               <section className="glass-card rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Recommended Delegations</h2>
+                <h2 className="text-xl font-semibold mb-4">Available Delegations</h2>
+                <p className="text-gray-400 mb-4">DAOs where you hold tokens and can delegate your voting power</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {loading ? (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      Loading available delegations...
+                    </div>
+                  ) : delegationsData?.available_delegations?.length ? (
+                    delegationsData.available_delegations.map((delegation, i) => renderDaoCard(delegation))
+                  ) : (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      No DAOs found where you can delegate
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Recommended DAOs Section */}
+              <section className="glass-card rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Discover More DAOs</h2>
+                <p className="text-gray-400 mb-4">Explore these DAOs based on governance activity and community engagement</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {loading ? (
                     <div className="col-span-full text-center py-8 text-gray-400">
                       Loading recommendations...
                     </div>
                   ) : delegationsData?.recommended_delegations.length ? (
-                    delegationsData.recommended_delegations.map((delegation, i) => (
-                      <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
-                        <h3 className="font-medium">{delegation.dao_name}</h3>
-                        <p className="text-sm text-gray-400">{delegation.token_amount}</p>
-                        {delegation.has_active_proposals && (
-                          <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
-                            Active Proposals
-                          </div>
-                        )}
-                        {delegation.proposals_count !== undefined && (
-                          <p className="text-sm text-gray-400 mt-2">
-                            {delegation.proposals_count} total proposals
-                          </p>
-                        )}
-                      </div>
-                    ))
+                    delegationsData.recommended_delegations.map((delegation, i) => renderDaoCard(delegation))
                   ) : (
                     <div className="col-span-full text-center py-8 text-gray-400">
                       No recommendations available
@@ -177,7 +183,6 @@ export default function App() {
                 <section className="glass-card rounded-lg p-6">
                   <h2 className="text-xl font-semibold mb-4">DAO Updates</h2>
                   <div className="space-y-4">
-                    {/* We'll integrate this with real updates later */}
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
                         <h3 className="font-medium">Update {i}</h3>
@@ -192,7 +197,6 @@ export default function App() {
                   <h2 className="text-xl font-semibold mb-4">Governance Assistant</h2>
                   <div className="h-[400px] flex flex-col">
                     <div className="flex-1 overflow-y-auto p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] mb-4">
-                      {/* Chat messages will go here */}
                       <p className="text-gray-400">Ask me anything about DAO governance...</p>
                     </div>
                     <div className="flex gap-2">
