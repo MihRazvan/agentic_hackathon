@@ -455,6 +455,47 @@ class TallyClient:
         except Exception as e:
             print(f"Error aggregating DAO analytics: {e}")
             return {}
+        
+    def get_organizations(self) -> Dict[str, Any]:
+        """Gets list of all organizations."""
+        query = """
+        query Organizations($input: OrganizationsInput) {
+            organizations(input: $input) {
+                nodes {
+                    id
+                    slug
+                    name
+                    chainIds
+                    tokenIds
+                    governorIds
+                    metadata {
+                        description
+                        icon
+                    }
+                    hasActiveProposals
+                    proposalsCount
+                    delegatesCount
+                    delegatesVotesCount
+                    tokenOwnersCount
+                }
+                pageInfo {
+                    firstCursor
+                    lastCursor
+                    count
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "input": {
+                "filters": {
+                    "chainId": None  # This will get organizations across all chains
+                }
+            }
+        }
+        
+        return self._execute_query(query, variables)
 
     def format_proposal_stats(self, proposal_data: Dict) -> Dict[str, Any]:
         """Formats proposal data into detailed analytics."""
@@ -529,3 +570,5 @@ class TallyClient:
             "aerodrome",
             "baseswap"
         ]
+    
+    
