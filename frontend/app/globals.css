@@ -3,21 +3,44 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Alchemical theme colors */
+  --midnight-blue: #001366;
+  --navy-blue: #000080;
+  --prussian-blue: #003153;
+  --charcoal-black: #2A2A2A;
+  --metallic-silver: #C0C0C0;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* System colors */
+  --background: var(--charcoal-black);
+  --foreground: #FFFFFF;
+  --primary: var(--midnight-blue);
+  --secondary: var(--prussian-blue);
+  --accent: var(--metallic-silver);
+
+  /* Component specific */
+  --card-bg: rgba(0, 19, 102, 0.2);
+  --card-border: rgba(192, 192, 192, 0.1);
+  --gradient-start: var(--midnight-blue);
+  --gradient-end: var(--prussian-blue);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Custom utilities */
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(8px);
+}
+
+.alchemical-gradient {
+  background: linear-gradient(135deg,
+      var(--gradient-start) 0%,
+      var(--gradient-end) 100%);
 }
 
 @layer utilities {

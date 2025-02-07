@@ -14,119 +14,115 @@ import {
   Identity,
   EthBalance,
 } from '@coinbase/onchainkit/identity';
-import ArrowSvg from './svg/ArrowSvg';
 import ImageSvg from './svg/Image';
-import OnchainkitSvg from './svg/OnchainKit';
-
-const components = [
-  {
-    name: 'Transaction',
-    url: 'https://onchainkit.xyz/transaction/transaction',
-  },
-  { name: 'Swap', url: 'https://onchainkit.xyz/swap/swap' },
-  { name: 'Checkout', url: 'https://onchainkit.xyz/checkout/checkout' },
-  { name: 'Wallet', url: 'https://onchainkit.xyz/wallet/wallet' },
-  { name: 'Identity', url: 'https://onchainkit.xyz/identity/identity' },
-];
-
-const templates = [
-  { name: 'NFT', url: 'https://github.com/coinbase/onchain-app-template' },
-  { name: 'Commerce', url: 'https://github.com/coinbase/onchain-commerce-template'},
-  { name: 'Fund', url: 'https://github.com/fakepixels/fund-component' },
-];
 
 export default function App() {
   return (
-    <div className="flex flex-col min-h-screen font-sans dark:bg-background dark:text-white bg-white text-black">
-      <header className="pt-4 pr-4">
-        <div className="flex justify-end">
-          <div className="wallet-container">
-            <Wallet>
-              <ConnectWallet>
-                <Avatar className="h-6 w-6" />
-                <Name />
-              </ConnectWallet>
-              <WalletDropdown>
-                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                  <Avatar />
-                  <Name />
-                  <Address />
-                  <EthBalance />
-                </Identity>
-                <WalletDropdownLink
-                  icon="wallet"
-                  href="https://keys.coinbase.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Wallet
-                </WalletDropdownLink>
-                <WalletDropdownDisconnect />
-              </WalletDropdown>
-            </Wallet>
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="p-4 border-b border-[var(--card-border)]">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10">
+              <ImageSvg />
+            </div>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[var(--metallic-silver)] to-white">
+              Tabula
+            </h1>
           </div>
+          <Wallet>
+            <ConnectWallet>
+              <Avatar className="h-6 w-6" />
+              <Name />
+            </ConnectWallet>
+            <WalletDropdown>
+              <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                <Avatar />
+                <Name />
+                <Address />
+                <EthBalance />
+              </Identity>
+              <WalletDropdownLink
+                icon="wallet"
+                href="https://keys.coinbase.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Wallet
+              </WalletDropdownLink>
+              <WalletDropdownDisconnect />
+            </WalletDropdown>
+          </Wallet>
         </div>
       </header>
 
-      <main className="flex-grow flex items-center justify-center">
-        <div className="max-w-4xl w-full p-4">
-          <div className="w-1/3 mx-auto mb-6">
-            <ImageSvg />
-          </div>
-          <div className="flex justify-center mb-6">
-            <a target="_blank" rel="_template" href="https://onchainkit.xyz">
-              <OnchainkitSvg className="dark:text-white text-black" />
-            </a>
-          </div>
-          <p className="text-center mb-6">
-            Get started by editing
-            <code className="p-1 ml-1 rounded dark:bg-gray-800 bg-gray-200">app/page.tsx</code>.
-          </p>
-          <div className="flex flex-col items-center">
-            <div className="max-w-2xl w-full">
-              <div className="flex flex-col md:flex-row justify-between mt-4">
-                <div className="md:w-1/2 mb-4 md:mb-0 flex flex-col items-center">
-                  <p className="font-semibold mb-2 text-center">
-                    Explore components
-                  </p>
-                  <ul className="list-disc pl-5 space-y-2 inline-block text-left">
-                    {components.map((component, index) => (
-                      <li key={index}>
-                        <a
-                          href={component.url}
-                          className="hover:underline inline-flex items-center dark:text-white text-black"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {component.name}
-                          <ArrowSvg />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+      {/* Main Content */}
+      <main className="flex-1 p-4">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* DAO Delegations Section */}
+          <section className="glass-card rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Your DAO Delegations</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Placeholder cards - will be replaced with real data */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
+                  <h3 className="font-medium">Example DAO {i}</h3>
+                  <p className="text-sm text-gray-400">Delegated: 1,000 tokens</p>
                 </div>
-                <div className="md:w-1/2 flex flex-col items-center">
-                  <p className="font-semibold mb-2 text-center">
-                    Explore templates
-                  </p>
-                  <ul className="list-disc pl-5 space-y-2 inline-block text-left">
-                    {templates.map((template, index) => (
-                      <li key={index}>
-                        <a
-                          href={template.url}
-                          className="hover:underline inline-flex items-center dark:text-white text-black"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {template.name}
-                          <ArrowSvg/>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+              ))}
+            </div>
+          </section>
+
+          {/* Potential Delegations Section */}
+          <section className="glass-card rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Recommended Delegations</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Placeholder cards - will be replaced with real data */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
+                  <h3 className="font-medium">Potential DAO {i}</h3>
+                  <p className="text-sm text-gray-400">Available: 500 tokens</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Updates and Chat Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* DAO Updates */}
+            <section className="glass-card rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">DAO Updates</h2>
+              <div className="space-y-4">
+                {/* Placeholder updates - will be replaced with real data */}
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
+                    <h3 className="font-medium">Update {i}</h3>
+                    <p className="text-sm text-gray-400">Lorem ipsum dolor sit amet</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* AI Chat */}
+            <section className="glass-card rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Governance Assistant</h2>
+              <div className="h-[400px] flex flex-col">
+                <div className="flex-1 overflow-y-auto p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] mb-4">
+                  {/* Chat messages will go here */}
+                  <p className="text-gray-400">Ask me anything about DAO governance...</p>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type your question..."
+                    className="flex-1 px-4 py-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)]"
+                  />
+                  <button className="px-4 py-2 rounded-lg alchemical-gradient text-white">
+                    Send
+                  </button>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
         </div>
       </main>
