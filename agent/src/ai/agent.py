@@ -1,16 +1,9 @@
 # agent/src/ai/agent.py
-
 from typing import Dict, Any, Optional
 from cdp_langchain.agent_toolkits import CdpToolkit
 from cdp_langchain.utils import CdpAgentkitWrapper
-from langchain_anthropic import ChatAnthropic
-from ..tally.client import TallyClient
-
-from typing import Dict, Any, Optional
-from cdp_langchain.agent_toolkits import CdpToolkit
-from cdp_langchain.utils import CdpAgentkitWrapper
-from langchain_openai import ChatOpenAI  # Changed from ChatAnthropic
-from ..tally.client import TallyClient
+from langchain_openai import ChatOpenAI
+from agent.src.tally.client import TallyClient  # Absolute import
 
 class TabulaAgent:
     def __init__(self, cdp_credentials: Dict[str, Any]):
