@@ -87,25 +87,24 @@ async def test_specific_dao_info():
     """Test getting detailed information about a specific DAO."""
     manager = WalletManager()
     
-    # Test with Arbitrum DAO
-    result = await manager.get_specific_dao_info("arbitrum")
+    # Test with Seamless Protocol (a real Base DAO)
+    result = await manager.get_specific_dao_info("seamless-protocol")
     
     assert result is not None
     assert "error" not in result
     
     print("\nSpecific DAO Info Test Results:")
-    print("\nBasic Info:")
-    for key, value in result["basic_info"].items():
-        print(f"{key}: {value}")
+    print(f"\nDAO Name: {result.get('basic_info', {}).get('name')}")
+    print(f"Chain IDs: {result.get('basic_info', {}).get('chain_ids')}")
+    print(f"Delegates Count: {result.get('basic_info', {}).get('delegates_count')}")
+    print(f"Proposals Count: {result.get('basic_info', {}).get('proposals_count')}")
     
-    print("\nActive Proposals:")
-    for proposal in result["active_proposals"]:
-        print(f"\n- {proposal.get('metadata', {}).get('title', 'No Title')}")
-        print(f"  Status: {proposal.get('status', 'Unknown')}")
-        if proposal.get('voteStats'):
-            print("  Vote Stats:")
-            for stat in proposal['voteStats']:
-                print(f"    {stat.get('type')}: {stat.get('votesCount')} votes ({stat.get('percent')}%)")
+    if result.get('active_proposals'):
+        print("\nActive Proposals:")
+        for proposal in result['active_proposals']:
+            print(f"- {proposal.get('metadata', {}).get('title', 'No Title')}")
+    
+    return result
 
 if __name__ == "__main__":
     import asyncio
