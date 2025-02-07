@@ -5,8 +5,11 @@ from agent.src.ai.agent import TabulaAgent
 from agent.src.tally.client import TallyClient
 
 def test_environment():
+    print("Testing environment setup...")
+    
     # Test environment variables
     load_dotenv()
+    
     required_vars = [
         'CDP_API_KEY_NAME',
         'CDP_API_KEY_PRIVATE_KEY',
@@ -55,7 +58,6 @@ def test_environment():
     return True
 
 if __name__ == "__main__":
-    print("Testing environment setup...")
     if test_environment():
         print("\n🎉 All systems operational!")
     else:
