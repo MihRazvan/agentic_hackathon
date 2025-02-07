@@ -10,7 +10,7 @@ def test_environment():
     required_vars = [
         'CDP_API_KEY_NAME',
         'CDP_API_KEY_PRIVATE_KEY',
-        'ANTHROPIC_API_KEY',
+        'OPENAI_API_KEY',  
         'TALLY_API_KEY'
     ]
     
