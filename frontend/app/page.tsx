@@ -18,7 +18,8 @@ import {
 import { useAccount } from 'wagmi';
 import ImageSvg from './svg/Image';
 import { getDelegations } from './services/delegations';
-import type { DelegationsData } from './types/delegations';
+import type { DelegationResponse, DelegationsData } from './types/delegations';
+import { getChainLogo } from './types/delegations';
 
 export default function App() {
   const { address } = useAccount();
@@ -32,6 +33,8 @@ export default function App() {
         setLoading(true);
         setError(null);
         const data = await getDelegations(address);
+        // Limit recommendations to 3
+        data.recommended_delegations = data.recommended_delegations.slice(0, 3);
         setDelegationsData(data);
       } catch (err) {
         setError('Failed to fetch delegations data');
@@ -49,9 +52,27 @@ export default function App() {
     }
   }, [address]);
 
-  const renderDaoCard = (delegation: any) => (
+  const renderDaoCard = (delegation: DelegationResponse) => (
     <div className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--metallic-silver)] transition-colors">
-      <h3 className="font-medium">{delegation.dao_name}</h3>
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="font-medium">{delegation.dao_name}</h3>
+        <div className="flex gap-1">
+          {delegation.chain_ids.map((chainId) => {
+            const logoUrl = getChainLogo(chainId);
+            if (!logoUrl) return null;
+
+            return (
+              <img
+                key={chainId}
+                src={logoUrl}
+                alt={`${chainId} chain`}
+                className="w-5 h-5"
+                title={`${chainId} chain`}
+              />
+            );
+          })}
+        </div>
+      </div>
       <p className="text-sm text-gray-400">{delegation.token_amount}</p>
       {delegation.has_active_proposals && (
         <div className="mt-2 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 inline-block">
@@ -130,7 +151,11 @@ export default function App() {
                       Loading delegations...
                     </div>
                   ) : delegationsData?.active_delegations.length ? (
-                    delegationsData.active_delegations.map((delegation, i) => renderDaoCard(delegation))
+                    delegationsData.active_delegations.map((delegation, i) => (
+                      <div key={`${delegation.dao_slug}-${i}`}>
+                        {renderDaoCard(delegation)}
+                      </div>
+                    ))
                   ) : (
                     <div className="col-span-full text-center py-8 text-gray-400">
                       You haven't delegated to any DAOs yet
@@ -149,7 +174,11 @@ export default function App() {
                       Loading available delegations...
                     </div>
                   ) : delegationsData?.available_delegations?.length ? (
-                    delegationsData.available_delegations.map((delegation, i) => renderDaoCard(delegation))
+                    delegationsData.available_delegations.map((delegation, i) => (
+                      <div key={`${delegation.dao_slug}-${i}`}>
+                        {renderDaoCard(delegation)}
+                      </div>
+                    ))
                   ) : (
                     <div className="col-span-full text-center py-8 text-gray-400">
                       No DAOs found where you can delegate
@@ -162,13 +191,17 @@ export default function App() {
               <section className="glass-card rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Discover More DAOs</h2>
                 <p className="text-gray-400 mb-4">Explore these DAOs based on governance activity and community engagement</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {loading ? (
                     <div className="col-span-full text-center py-8 text-gray-400">
                       Loading recommendations...
                     </div>
                   ) : delegationsData?.recommended_delegations.length ? (
-                    delegationsData.recommended_delegations.map((delegation, i) => renderDaoCard(delegation))
+                    delegationsData.recommended_delegations.map((delegation, i) => (
+                      <div key={`${delegation.dao_slug}-${i}`}>
+                        {renderDaoCard(delegation)}
+                      </div>
+                    ))
                   ) : (
                     <div className="col-span-full text-center py-8 text-gray-400">
                       No recommendations available
