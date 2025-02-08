@@ -1,17 +1,21 @@
-// app/services/delegations.ts
+import { DelegationsData, TokenHolding } from '../types/delegations';
 
-import { DelegationsData } from '../types/delegations';
-
-export async function getDelegations(walletAddress?: string): Promise<DelegationsData> {
+export async function getDelegations(walletAddress?: string, tokenHoldings?: TokenHolding[]): Promise<DelegationsData> {
     console.log('getDelegations called with address:', walletAddress);
+    console.log('Token holdings:', tokenHoldings);
 
     if (!walletAddress) {
         throw new Error('Wallet address is required');
     }
 
     try {
-        console.log('Fetching from:', `http://localhost:8000/api/delegations/${walletAddress}`);
-        const response = await fetch(`http://localhost:8000/api/delegations/${walletAddress}`);
+        const response = await fetch(`http://localhost:8000/api/delegations/${walletAddress}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token_holdings: tokenHoldings || [] }),
+        });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -22,15 +26,11 @@ export async function getDelegations(walletAddress?: string): Promise<Delegation
         const data = await response.json();
         console.log('API Response:', data);
 
-        // Transform the data to match our frontend structure
-        const transformedData = {
+        return {
             active_delegations: data.active_delegations || [],
-            potential_daos: data.potential_daos || [],
+            available_delegations: data.available_delegations || [],
             recommended_delegations: data.recommended_delegations || []
         };
-
-        console.log('Transformed data:', transformedData);
-        return transformedData;
     } catch (error) {
         console.error('Error in getDelegations:', error);
         throw error;

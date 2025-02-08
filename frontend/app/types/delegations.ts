@@ -1,3 +1,9 @@
+export interface TokenHolding {
+    token_address: string;
+    chain_id: string;
+    balance: string;
+}
+
 export interface DelegationResponse {
     dao_name: string;
     dao_slug: string;
@@ -10,7 +16,7 @@ export interface DelegationResponse {
 
 export interface DelegationsData {
     active_delegations: DelegationResponse[];
-    potential_daos: DelegationResponse[];
+    available_delegations: DelegationResponse[];
     recommended_delegations: DelegationResponse[];
 }
 

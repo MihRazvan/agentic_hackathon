@@ -20,6 +20,7 @@ import ImageSvg from './svg/Image';
 import { getDelegations } from './services/delegations';
 import type { DelegationResponse, DelegationsData } from './types/delegations';
 import { getChainLogo } from './types/delegations';
+import { getTokenHoldings } from './services/tokens';
 
 export default function App() {
   const { address } = useAccount();
@@ -32,8 +33,13 @@ export default function App() {
       try {
         setLoading(true);
         setError(null);
-        const data = await getDelegations(address);
-        // Limit recommendations to 3
+
+        // First get token holdings
+        const holdings = await getTokenHoldings(address);
+        console.log('Token holdings:', holdings);
+
+        // Then fetch delegations with holdings data
+        const data = await getDelegations(address, holdings);
         data.recommended_delegations = data.recommended_delegations.slice(0, 3);
         setDelegationsData(data);
       } catch (err) {
@@ -173,15 +179,10 @@ export default function App() {
                     <div className="col-span-full text-center py-8 text-gray-400">
                       Loading available delegations...
                     </div>
-                  ) : delegationsData?.potential_daos?.length ? (
-                    delegationsData.potential_daos.map((delegation, i) => (
+                  ) : delegationsData?.available_delegations?.length ? (
+                    delegationsData.available_delegations.map((delegation, i) => (
                       <div key={`${delegation.dao_slug}-${i}`}>
-                        {renderDaoCard({
-                          ...delegation,
-                          token_amount: delegation.token_balance
-                            ? `${delegation.token_balance} ${delegation.token_symbol}`
-                            : `Available: ${delegation.delegates_count} delegates`
-                        })}
+                        {renderDaoCard(delegation)}
                       </div>
                     ))
                   ) : (
