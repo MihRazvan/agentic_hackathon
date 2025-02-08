@@ -6,12 +6,29 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 import logging
+import os
 from ..tally.client import TallyClient
 from ..ai.dao_updates import DaoUpdatesAgent, DaoUpdate
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Get the project root directory (where .env is located)
+root_dir = Path(__file__).resolve().parent.parent.parent.parent
+env_path = root_dir / '.env'
+
+# Load environment variables from .env file
+load_dotenv(dotenv_path=env_path)
+logger.info(f"Loading environment variables from: {env_path}")
+
+# Log environment variable status (without exposing values)
+for var in ['TALLY_API_KEY', 'OPENAI_API_KEY']:
+    logger.info(f"{var} is {'set' if os.getenv(var) else 'not set'}")
 
 app = FastAPI(title="Tabula API", description="DAO Intelligence Hub API")
 
@@ -36,6 +53,50 @@ class UpdatesRequest(BaseModel):
     dao_slugs: List[str]
     token_holdings: Optional[Dict[str, str]] = None
 
+def get_tally_client() -> TallyClient:
+    """Get or create TallyClient instance."""
+    tally_api_key = os.getenv('TALLY_API_KEY')
+    if not tally_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="TALLY_API_KEY environment variable is not set"
+        )
+    
+    try:
+        return TallyClient()
+    except Exception as e:
+        logger.error(f"Error initializing TallyClient: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to initialize TallyClient"
+        )
+
+def get_updates_agent() -> DaoUpdatesAgent:
+    """Get DaoUpdatesAgent instance."""
+    tally_api_key = os.getenv('TALLY_API_KEY')
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    
+    if not tally_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="TALLY_API_KEY environment variable is not set"
+        )
+        
+    if not openai_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="OPENAI_API_KEY environment variable is not set"
+        )
+    
+    try:
+        return DaoUpdatesAgent(tally_api_key=tally_api_key)
+    except Exception as e:
+        logger.error(f"Error initializing DaoUpdatesAgent: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to initialize DaoUpdatesAgent"
+        )
+
 @app.post("/api/delegations/{address}")
 async def get_delegations(address: str, request: DelegationRequest):
     """Get delegations for a wallet address based on token holdings."""
@@ -43,8 +104,8 @@ async def get_delegations(address: str, request: DelegationRequest):
     logger.info(f"Token holdings: {request.token_holdings}")
     
     try:
-        # Initialize Tally client
-        tally_client = TallyClient()
+        # Get TallyClient instance
+        tally_client = get_tally_client()
         
         # Get all Base DAOs
         orgs = tally_client.get_organizations()
@@ -128,30 +189,37 @@ async def get_delegations(address: str, request: DelegationRequest):
 async def get_dao_updates(request: UpdatesRequest):
     """Get AI-curated updates for specified DAOs."""
     try:
-        logger.info(f"Processing updates for DAOs: {request.dao_slugs}")
+        logger.info(f"Processing updates request for DAOs: {request.dao_slugs}")
         
-        # Initialize the DAO Updates Agent
-        agent = DaoUpdatesAgent(cdp_credentials={
-            # Add your CDP credentials here
-            "api_key_name": "your_key_name",
-            "api_key_private_key": "your_private_key"
-        })
+        # Get DaoUpdatesAgent instance
+        agent = get_updates_agent()
+        logger.info("DAO Updates Agent initialized successfully")
         
+        # Get updates for each DAO
         all_updates = []
         for dao_slug in request.dao_slugs:
-            updates = await agent.get_dao_updates(
-                dao_slug=dao_slug,
-                user_holdings=request.token_holdings
-            )
-            all_updates.extend(updates)
-            
-        # Sort all updates by priority and timestamp
-        sorted_updates = sorted(all_updates, key=lambda x: (
-            {'urgent': 0, 'important': 1, 'fyi': 2}[x.priority],
-            x.timestamp
-        ), reverse=True)
+            try:
+                updates = await agent.get_dao_updates(
+                    dao_slug=dao_slug,
+                    user_holdings=request.token_holdings
+                )
+                logger.info(f"Got {len(updates)} updates for DAO {dao_slug}")
+                all_updates.extend(updates)
+            except Exception as e:
+                logger.error(f"Error getting updates for DAO {dao_slug}: {str(e)}")
+                continue
         
-        logger.info(f"Returning {len(sorted_updates)} updates")
+        # Sort all updates by priority and timestamp
+        sorted_updates = sorted(
+            all_updates,
+            key=lambda x: (
+                {'urgent': 0, 'important': 1, 'fyi': 2}[x.priority],
+                x.timestamp
+            ),
+            reverse=True
+        )
+        
+        logger.info(f"Returning {len(sorted_updates)} total updates")
         return sorted_updates
         
     except Exception as e:
