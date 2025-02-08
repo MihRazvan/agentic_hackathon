@@ -3,9 +3,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Literal
+from datetime import datetime
 import logging
 from ..tally.client import TallyClient
+from ..ai.dao_updates import DaoUpdatesAgent, DaoUpdate
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +31,10 @@ class TokenHolding(BaseModel):
 
 class DelegationRequest(BaseModel):
     token_holdings: List[TokenHolding]
+
+class UpdatesRequest(BaseModel):
+    dao_slugs: List[str]
+    token_holdings: Optional[Dict[str, str]] = None
 
 @app.post("/api/delegations/{address}")
 async def get_delegations(address: str, request: DelegationRequest):
@@ -116,6 +122,40 @@ async def get_delegations(address: str, request: DelegationRequest):
         
     except Exception as e:
         logger.error(f"Error processing delegations: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/updates", response_model=List[DaoUpdate])
+async def get_dao_updates(request: UpdatesRequest):
+    """Get AI-curated updates for specified DAOs."""
+    try:
+        logger.info(f"Processing updates for DAOs: {request.dao_slugs}")
+        
+        # Initialize the DAO Updates Agent
+        agent = DaoUpdatesAgent(cdp_credentials={
+            # Add your CDP credentials here
+            "api_key_name": "your_key_name",
+            "api_key_private_key": "your_private_key"
+        })
+        
+        all_updates = []
+        for dao_slug in request.dao_slugs:
+            updates = await agent.get_dao_updates(
+                dao_slug=dao_slug,
+                user_holdings=request.token_holdings
+            )
+            all_updates.extend(updates)
+            
+        # Sort all updates by priority and timestamp
+        sorted_updates = sorted(all_updates, key=lambda x: (
+            {'urgent': 0, 'important': 1, 'fyi': 2}[x.priority],
+            x.timestamp
+        ), reverse=True)
+        
+        logger.info(f"Returning {len(sorted_updates)} updates")
+        return sorted_updates
+        
+    except Exception as e:
+        logger.error(f"Error processing updates: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
