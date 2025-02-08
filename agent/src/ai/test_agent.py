@@ -1,44 +1,66 @@
 # agent/src/ai/test_agent.py
-import os
-import pytest
-from dotenv import load_dotenv
-from agent.src.ai.agent import TabulaAgent
 
-@pytest.mark.asyncio
-async def test_dao_summary():
-    # Load environment variables
-    load_dotenv()
+import asyncio
+import sys
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Add project root to Python path
+project_root = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.append(str(project_root))
+
+# Load .env from project root
+env_path = project_root / '.env'
+load_dotenv(dotenv_path=env_path)
+
+# Import the agent - using relative imports
+from chatbot_agent import DAOGovernanceAgent
+
+async def test_agent():
+    """Test the DAO Governance Agent with various scenarios."""
+    print("\nLoading environment variables from:", env_path)
+    print("Environment variables status:")
+    for var in ['OPENAI_API_KEY', 'CDP_API_KEY_NAME', 'CDP_API_KEY_PRIVATE_KEY', 'TALLY_API_KEY']:
+        print(f"{var} is {'set' if os.getenv(var) else 'not set'}")
+
+    print("\nInitializing DAO Governance Agent...")
+    agent = DAOGovernanceAgent()
     
-    # Get actual credentials from environment
-    test_credentials = {
-        "api_key_name": os.getenv('CDP_API_KEY_NAME'),
-        "private_key": os.getenv('CDP_API_KEY_PRIVATE_KEY')
-    }
+    # Test cases
+    test_messages = [
+        "What's my wallet address?",
+        "Show me all Base DAOs available",
+        "What are the recent proposals for Uniswap?",
+        "How do I delegate my tokens?",
+        "Show me the treasury allocation for Base",
+    ]
     
-    agent = TabulaAgent(test_credentials)
-    
-    # Test with Arbitrum DAO
-    summary = await agent.get_dao_summary("arbitrum")
-    
-    # Basic structure tests
-    assert summary is not None
-    assert "raw_data" in summary
-    assert "ai_summary" in summary or "error" in summary
-    
-    if "error" not in summary:
-        # Data validation tests
-        assert isinstance(summary["raw_data"]["dao"], dict)
-        assert isinstance(summary["raw_data"]["proposals"], list)
-        assert isinstance(summary["ai_summary"], str)
+    print("\nStarting test cases...")
+    for message in test_messages:
+        print(f"\n🔹 Testing: {message}")
+        try:
+            response = await agent.chat(message)
+            print(f"Response: {response}")
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
         
-        # Print results for inspection
-        print("\nDAO Summary Test Results:")
-        print(f"DAO Info: {summary['raw_data']['dao']}")
-        print(f"Number of processed proposals: {len(summary['raw_data']['proposals'])}")
-        print(f"AI Summary: {summary['ai_summary'][:200]}...")
-    else:
-        print(f"\nError encountered: {summary['error']}")
+        # Small delay between requests
+        await asyncio.sleep(2)
+    
+    # Test onchain action
+    print("\n🔹 Testing onchain action: Request faucet funds")
+    try:
+        response = await agent.chat("Can you request some test tokens from the faucet?")
+        print(f"Response: {response}")
+    except Exception as e:
+        print(f"Error: {str(e)}")
+    
+    print("\nTest completed!")
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(test_dao_summary())
+    # Run tests
+    asyncio.run(test_agent())
