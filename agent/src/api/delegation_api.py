@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import logging
+import re
 
 from ..wallet.manager import WalletManager
 
@@ -23,84 +24,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class DelegationResponse(BaseModel):
-    """Schema for a single delegation response."""
-    dao_name: str = Field(..., description="Name of the DAO")
-    dao_slug: str = Field(..., description="Slug identifier of the DAO")
-    token_amount: str = Field(..., description="Amount of tokens delegated/available")
-    chain_ids: List[str] = Field(..., description="List of chain IDs where the DAO operates")
-    votes_count: Optional[str] = Field(None, description="Number of votes")
-    proposals_count: Optional[int] = Field(None, description="Number of proposals")
-    has_active_proposals: Optional[bool] = Field(None, description="Whether the DAO has active proposals")
+def validate_eth_address(address: str) -> bool:
+    """Validate Ethereum address format."""
+    if not address:
+        return False
+    return bool(re.match(r'^0x[a-fA-F0-9]{40}$', address))
 
-class DelegationsData(BaseModel):
-    """Schema for the complete delegations response."""
-    active_delegations: List[DelegationResponse]
-    recommended_delegations: List[DelegationResponse]
-
-@app.get("/", include_in_schema=False)
-async def root():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "Tabula API"}
-
-@app.get("/api/delegations/{address}", response_model=DelegationsData)
+@app.get("/api/delegations/{address}")
 async def get_delegations(address: str):
     """
     Get active and recommended delegations for a wallet address.
     
     Args:
-        address: Ethereum wallet address
-        
-    Returns:
-        DelegationsData containing active and recommended delegations
+        address: Ethereum wallet address from frontend
     """
+    # Log the received address
+    logger.info(f"Received request for address: {address}")
+    
+    # Validate address format
+    if not validate_eth_address(address):
+        raise HTTPException(status_code=400, detail="Invalid Ethereum address format")
+    
     try:
-        logger.info(f"Fetching delegations for address: {address}")
+        # Initialize WalletManager
         wallet_manager = WalletManager()
+        
+        # Get DAO involvement using the provided address
         result = await wallet_manager.get_dao_involvement(address)
         
-        # Format active delegations
-        active_delegations = []
-        for d in result['active_delegations']:
-            try:
-                active_delegations.append(
-                    DelegationResponse(
-                        dao_name=d['dao_name'],
-                        dao_slug=d['dao_slug'],
-                        token_amount=f"{d.get('token', {}).get('symbol', 'TOKEN')} {d.get('votes_count', '0')}",
-                        chain_ids=d['chain_ids'],
-                        votes_count=str(d.get('votes_count', '0')),
-                        proposals_count=d.get('proposals_count', 0),
-                        has_active_proposals=d.get('has_active_proposals', False)
-                    )
-                )
-            except Exception as e:
-                logger.error(f"Error processing active delegation {d['dao_name']}: {str(e)}")
-                continue
+        logger.info(f"Successfully fetched delegations for {address}")
+        logger.debug(f"Found {len(result['active_delegations'])} active delegations")
+        logger.debug(f"Found {len(result['potential_daos'])} potential DAOs")
         
-        # Format recommended delegations
-        recommended_delegations = []
-        for d in result['potential_daos']:
-            try:
-                recommended_delegations.append(
-                    DelegationResponse(
-                        dao_name=d['dao_name'],
-                        dao_slug=d['dao_slug'],
-                        token_amount=f"Available: {d.get('delegates_count', '0')} delegates",
-                        chain_ids=d['chain_ids'],
-                        proposals_count=d.get('proposals_count', 0),
-                        has_active_proposals=d.get('has_active_proposals', False)
-                    )
-                )
-            except Exception as e:
-                logger.error(f"Error processing recommended DAO {d['dao_name']}: {str(e)}")
-                continue
-        
-        logger.info(f"Successfully processed delegations. Active: {len(active_delegations)}, Recommended: {len(recommended_delegations)}")
-        return DelegationsData(
-            active_delegations=active_delegations,
-            recommended_delegations=recommended_delegations
-        )
+        return {
+            "active_delegations": result['active_delegations'],
+            "available_delegations": [
+                dao for dao in result['potential_daos']
+                if dao.get('tokenOwnersCount', 0) > 0
+            ],
+            "recommended_delegations": sorted(
+                result['potential_daos'],
+                key=lambda x: (
+                    x.get('proposals_count', 0), 
+                    x.get('delegates_count', 0)
+                ),
+                reverse=True
+            )[:3]
+        }
         
     except Exception as e:
         logger.error(f"Error processing delegations for {address}: {str(e)}")
