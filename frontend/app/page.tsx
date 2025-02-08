@@ -15,57 +15,46 @@ import {
   Identity,
   EthBalance,
 } from '@coinbase/onchainkit/identity';
+import { useAccount } from 'wagmi';
 import { getTokenHoldings } from './services/tokens';
+import { getDelegations } from './services/delegations';
 import type { DelegationResponse, DelegationsData } from './types/delegations';
 import ImageSvg from './svg/Image';
 
 export default function App() {
+  const { address } = useAccount();
   const [delegationsData, setDelegationsData] = useState<DelegationsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchDelegations() {
-      if (!connectedAddress) return;
+    async function fetchData() {
+      if (!address) {
+        setDelegationsData(null);
+        return;
+      }
 
       try {
         setLoading(true);
         setError(null);
 
-        // Get token holdings for Base network only
-        const holdings = await getTokenHoldings(connectedAddress);
+        // First get token holdings
+        const holdings = await getTokenHoldings(address);
         console.log('Token holdings:', holdings);
 
-        // Call your backend API
-        const response = await fetch(`http://localhost:8000/api/delegations/${connectedAddress}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token_holdings: holdings }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setDelegationsData({
-          active_delegations: data.active_delegations || [],
-          available_delegations: data.available_delegations || [],
-          recommended_delegations: data.recommended_delegations?.slice(0, 3) || []
-        });
+        // Then fetch delegations with holdings data
+        const data = await getDelegations(address, holdings);
+        setDelegationsData(data);
       } catch (err) {
-        console.error(err);
-        setError('Failed to fetch delegations data');
+        console.error('Error fetching data:', err);
+        setError('Failed to fetch data');
       } finally {
         setLoading(false);
       }
     }
 
-    fetchDelegations();
-  }, [connectedAddress]);
+    fetchData();
+  }, [address]);
 
   const renderDaoCard = (delegation: DelegationResponse) => (
     <div className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--metallic-silver)] transition-colors">
@@ -100,7 +89,7 @@ export default function App() {
             </h1>
           </div>
           <Wallet>
-            <ConnectWallet onConnect={(address) => setConnectedAddress(address)}>
+            <ConnectWallet>
               <Avatar className="h-6 w-6" />
               <Name />
             </ConnectWallet>
@@ -119,7 +108,7 @@ export default function App() {
               >
                 Wallet
               </WalletDropdownLink>
-              <WalletDropdownDisconnect onDisconnect={() => setConnectedAddress(null)} />
+              <WalletDropdownDisconnect />
             </WalletDropdown>
           </Wallet>
         </div>
@@ -128,7 +117,7 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 p-4">
         <div className="max-w-7xl mx-auto space-y-6">
-          {!connectedAddress ? (
+          {!address ? (
             <div className="glass-card rounded-lg p-8 text-center">
               <h2 className="text-xl font-semibold mb-4">Connect Your Wallet</h2>
               <p className="text-gray-400 mb-6">Connect your wallet to view your DAO delegations and recommendations</p>
