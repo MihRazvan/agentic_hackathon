@@ -18,12 +18,15 @@ import {
 import { useAccount } from 'wagmi';
 import { getTokenHoldings } from './services/tokens';
 import { getDelegations } from './services/delegations';
-import type { DelegationResponse, DelegationsData } from './types/delegations';
+import { getDaoUpdates } from './services/updates';
+import { UpdateCard } from './components/UpdateCard';
+import type { DelegationResponse, DelegationsData, DaoUpdate } from './types/delegations';
 import ImageSvg from './svg/Image';
 
 export default function App() {
   const { address } = useAccount();
   const [delegationsData, setDelegationsData] = useState<DelegationsData | null>(null);
+  const [updates, setUpdates] = useState<DaoUpdate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +34,7 @@ export default function App() {
     async function fetchData() {
       if (!address) {
         setDelegationsData(null);
+        setUpdates([]);
         return;
       }
 
@@ -45,6 +49,17 @@ export default function App() {
         // Then fetch delegations with holdings data
         const data = await getDelegations(address, holdings);
         setDelegationsData(data);
+
+        // Fetch updates for active and available DAOs
+        const daoSlugs = [
+          ...data.active_delegations.map(d => d.dao_slug),
+          ...data.available_delegations.map(d => d.dao_slug)
+        ];
+
+        if (daoSlugs.length > 0) {
+          const updatesData = await getDaoUpdates(daoSlugs, holdings);
+          setUpdates(updatesData);
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to fetch data');
@@ -74,6 +89,11 @@ export default function App() {
       )}
     </div>
   );
+
+  // Group updates by priority
+  const urgentUpdates = updates.filter(u => u.priority === 'urgent');
+  const importantUpdates = updates.filter(u => u.priority === 'important');
+  const fyiUpdates = updates.filter(u => u.priority === 'fyi');
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -132,23 +152,65 @@ export default function App() {
             </div>
           ) : (
             <>
-              {/* Active Delegations Section */}
-              <section className="glass-card rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Your Active Delegations</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {delegationsData?.active_delegations.length ? (
-                    delegationsData.active_delegations.map((delegation, i) => (
-                      <div key={`${delegation.dao_slug}-${i}`}>
-                        {renderDaoCard(delegation)}
+              {/* Updates Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* DAO Updates */}
+                <section className="glass-card rounded-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">DAO Updates</h2>
+                  <div className="space-y-4">
+                    {updates.length > 0 ? (
+                      <>
+                        {urgentUpdates.length > 0 && (
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-medium text-red-400">Urgent Updates</h3>
+                            {urgentUpdates.map(update => (
+                              <UpdateCard key={update.id} update={update} />
+                            ))}
+                          </div>
+                        )}
+                        {importantUpdates.length > 0 && (
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-medium text-yellow-400">Important Updates</h3>
+                            {importantUpdates.map(update => (
+                              <UpdateCard key={update.id} update={update} />
+                            ))}
+                          </div>
+                        )}
+                        {fyiUpdates.length > 0 && (
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-medium text-blue-400">FYI</h3>
+                            {fyiUpdates.map(update => (
+                              <UpdateCard key={update.id} update={update} />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        No updates available
                       </div>
-                    ))
-                  ) : (
-                    <div className="col-span-full text-center py-8 text-gray-400">
-                      You haven't delegated to any DAOs yet
-                    </div>
-                  )}
-                </div>
-              </section>
+                    )}
+                  </div>
+                </section>
+
+                {/* Active Delegations Section */}
+                <section className="glass-card rounded-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">Your Active Delegations</h2>
+                  <div className="space-y-4">
+                    {delegationsData?.active_delegations.length ? (
+                      delegationsData.active_delegations.map((delegation, i) => (
+                        <div key={`${delegation.dao_slug}-${i}`}>
+                          {renderDaoCard(delegation)}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        You haven't delegated to any DAOs yet
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
 
               {/* Available Delegations Section */}
               <section className="glass-card rounded-lg p-6">
