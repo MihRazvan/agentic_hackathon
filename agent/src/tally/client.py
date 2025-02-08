@@ -6,6 +6,7 @@ import json
 from dotenv import load_dotenv
 import os
 import logging
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -204,33 +205,32 @@ class TallyClient:
             
         return self._execute_query(query, variables)
 
-    def _execute_query(self, query: str, variables: Dict) -> Dict:
-        """Helper function to execute GraphQL queries."""
-        try:
-            response = requests.post(
-                self.endpoint,
-                json={
-                    'query': query,
-                    'variables': variables
-                },
-                headers=self.headers,
-                timeout=10
-            )
-            
+    def _execute_query(self, query: str, variables: dict, retries: int = 5, delay: float = 2.0) -> dict:
+        """Helper function to execute GraphQL queries with rate limit handling."""
+        for attempt in range(retries):
             try:
+                response = requests.post(
+                    self.endpoint,
+                    json={'query': query, 'variables': variables},
+                    headers=self.headers,
+                    timeout=10
+                )
+
+                if response.status_code == 429:  # Rate limit exceeded
+                    wait_time = delay * (2 ** attempt)  # Exponential backoff
+                    logging.warning(f"Rate limit hit. Retrying in {wait_time:.2f} seconds...")
+                    time.sleep(wait_time)
+                    continue
+
                 data = response.json()
                 if 'errors' in data:
-                    logger.error(f"GraphQL Errors: {data['errors']}")
+                    logging.error(f"GraphQL Errors: {data['errors']}")
                     return None
                 return data
-            except json.JSONDecodeError:
-                logger.error(f"Invalid JSON response: {response.text}")
+
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Request error: {str(e)}")
                 return None
 
-            if response.status_code != 200:
-                logger.error(f"HTTP {response.status_code}: {response.text}")
-                return None
-                
-        except Exception as e:
-            logger.error(f"Error executing query: {str(e)}")
-            return None
+        logging.error("Max retries reached. Failed to fetch data.")
+        return None
