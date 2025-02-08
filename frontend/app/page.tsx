@@ -15,69 +15,62 @@ import {
   Identity,
   EthBalance,
 } from '@coinbase/onchainkit/identity';
-import { useAccount } from 'wagmi';
-import ImageSvg from './svg/Image';
-import { getDelegations } from './services/delegations';
-import type { DelegationResponse, DelegationsData } from './types/delegations';
-import { getChainLogo } from './types/delegations';
 import { getTokenHoldings } from './services/tokens';
+import type { DelegationResponse, DelegationsData } from './types/delegations';
+import ImageSvg from './svg/Image';
 
 export default function App() {
-  const { address } = useAccount();
   const [delegationsData, setDelegationsData] = useState<DelegationsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchDelegations() {
+      if (!connectedAddress) return;
+
       try {
         setLoading(true);
         setError(null);
 
-        // First get token holdings
-        const holdings = await getTokenHoldings(address);
+        // Get token holdings for Base network only
+        const holdings = await getTokenHoldings(connectedAddress);
         console.log('Token holdings:', holdings);
 
-        // Then fetch delegations with holdings data
-        const data = await getDelegations(address, holdings);
-        data.recommended_delegations = data.recommended_delegations.slice(0, 3);
-        setDelegationsData(data);
+        // Call your backend API
+        const response = await fetch(`http://localhost:8000/api/delegations/${connectedAddress}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token_holdings: holdings }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setDelegationsData({
+          active_delegations: data.active_delegations || [],
+          available_delegations: data.available_delegations || [],
+          recommended_delegations: data.recommended_delegations?.slice(0, 3) || []
+        });
       } catch (err) {
-        setError('Failed to fetch delegations data');
         console.error(err);
+        setError('Failed to fetch delegations data');
       } finally {
         setLoading(false);
       }
     }
 
-    if (address) {
-      fetchDelegations();
-    } else {
-      setDelegationsData(null);
-      setError(null);
-    }
-  }, [address]);
+    fetchDelegations();
+  }, [connectedAddress]);
 
   const renderDaoCard = (delegation: DelegationResponse) => (
     <div className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--metallic-silver)] transition-colors">
       <div className="flex justify-between items-start mb-2">
         <h3 className="font-medium">{delegation.dao_name}</h3>
-        <div className="flex gap-1">
-          {delegation.chain_ids.map((chainId) => {
-            const logoUrl = getChainLogo(chainId);
-            if (!logoUrl) return null;
-
-            return (
-              <img
-                key={chainId}
-                src={logoUrl}
-                alt={`${chainId} chain`}
-                className="w-5 h-5"
-                title={`${chainId} chain`}
-              />
-            );
-          })}
-        </div>
       </div>
       <p className="text-sm text-gray-400">{delegation.token_amount}</p>
       {delegation.has_active_proposals && (
@@ -107,7 +100,7 @@ export default function App() {
             </h1>
           </div>
           <Wallet>
-            <ConnectWallet>
+            <ConnectWallet onConnect={(address) => setConnectedAddress(address)}>
               <Avatar className="h-6 w-6" />
               <Name />
             </ConnectWallet>
@@ -126,7 +119,7 @@ export default function App() {
               >
                 Wallet
               </WalletDropdownLink>
-              <WalletDropdownDisconnect />
+              <WalletDropdownDisconnect onDisconnect={() => setConnectedAddress(null)} />
             </WalletDropdown>
           </Wallet>
         </div>
@@ -135,28 +128,26 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 p-4">
         <div className="max-w-7xl mx-auto space-y-6">
-          {!address ? (
+          {!connectedAddress ? (
             <div className="glass-card rounded-lg p-8 text-center">
               <h2 className="text-xl font-semibold mb-4">Connect Your Wallet</h2>
               <p className="text-gray-400 mb-6">Connect your wallet to view your DAO delegations and recommendations</p>
             </div>
+          ) : loading ? (
+            <div className="glass-card rounded-lg p-8 text-center">
+              <p className="text-gray-400">Loading your DAO data...</p>
+            </div>
+          ) : error ? (
+            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500 text-red-500">
+              {error}
+            </div>
           ) : (
             <>
-              {error && (
-                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500 text-red-500">
-                  {error}
-                </div>
-              )}
-
               {/* Active Delegations Section */}
               <section className="glass-card rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Your Active Delegations</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {loading ? (
-                    <div className="col-span-full text-center py-8 text-gray-400">
-                      Loading delegations...
-                    </div>
-                  ) : delegationsData?.active_delegations.length ? (
+                  {delegationsData?.active_delegations.length ? (
                     delegationsData.active_delegations.map((delegation, i) => (
                       <div key={`${delegation.dao_slug}-${i}`}>
                         {renderDaoCard(delegation)}
@@ -175,11 +166,7 @@ export default function App() {
                 <h2 className="text-xl font-semibold mb-4">Available Delegations</h2>
                 <p className="text-gray-400 mb-4">DAOs where you hold tokens and can delegate your voting power</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {loading ? (
-                    <div className="col-span-full text-center py-8 text-gray-400">
-                      Loading available delegations...
-                    </div>
-                  ) : delegationsData?.available_delegations?.length ? (
+                  {delegationsData?.available_delegations?.length ? (
                     delegationsData.available_delegations.map((delegation, i) => (
                       <div key={`${delegation.dao_slug}-${i}`}>
                         {renderDaoCard(delegation)}
@@ -198,11 +185,7 @@ export default function App() {
                 <h2 className="text-xl font-semibold mb-4">Discover More DAOs</h2>
                 <p className="text-gray-400 mb-4">Explore these DAOs based on governance activity and community engagement</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {loading ? (
-                    <div className="col-span-full text-center py-8 text-gray-400">
-                      Loading recommendations...
-                    </div>
-                  ) : delegationsData?.recommended_delegations.length ? (
+                  {delegationsData?.recommended_delegations?.length ? (
                     delegationsData.recommended_delegations.map((delegation, i) => (
                       <div key={`${delegation.dao_slug}-${i}`}>
                         {renderDaoCard(delegation)}
@@ -215,42 +198,6 @@ export default function App() {
                   )}
                 </div>
               </section>
-
-              {/* Updates and Chat Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* DAO Updates */}
-                <section className="glass-card rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4">DAO Updates</h2>
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)]">
-                        <h3 className="font-medium">Update {i}</h3>
-                        <p className="text-sm text-gray-400">Lorem ipsum dolor sit amet</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                {/* AI Chat */}
-                <section className="glass-card rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4">Governance Assistant</h2>
-                  <div className="h-[400px] flex flex-col">
-                    <div className="flex-1 overflow-y-auto p-4 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] mb-4">
-                      <p className="text-gray-400">Ask me anything about DAO governance...</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Type your question..."
-                        className="flex-1 px-4 py-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)]"
-                      />
-                      <button className="px-4 py-2 rounded-lg alchemical-gradient text-white">
-                        Send
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </div>
             </>
           )}
         </div>

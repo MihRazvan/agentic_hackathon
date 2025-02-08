@@ -1,38 +1,36 @@
-import { DelegationsData, TokenHolding } from '../types/delegations';
-
-export async function getDelegations(walletAddress?: string, tokenHoldings?: TokenHolding[]): Promise<DelegationsData> {
-    console.log('getDelegations called with address:', walletAddress);
-    console.log('Token holdings:', tokenHoldings);
-
-    if (!walletAddress) {
-        throw new Error('Wallet address is required');
-    }
-
-    try {
-        const response = await fetch(`http://localhost:8000/api/delegations/${walletAddress}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token_holdings: tokenHoldings || [] }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error:', response.status, errorText);
-            throw new Error(`Failed to fetch delegations: ${response.status} ${errorText}`);
-        }
-
-        const data = await response.json();
-        console.log('API Response:', data);
-
-        return {
-            active_delegations: data.active_delegations || [],
-            available_delegations: data.available_delegations || [],
-            recommended_delegations: data.recommended_delegations || []
-        };
-    } catch (error) {
-        console.error('Error in getDelegations:', error);
-        throw error;
-    }
-}
+export interface TokenHolding {
+    token_address: string;
+    chain_id: string;
+    balance: string;
+  }
+  
+  export interface DelegationResponse {
+    dao_name: string;
+    dao_slug: string;
+    token_amount: string;
+    chain_ids: string[];
+    votes_count?: string;
+    proposals_count?: number;
+    has_active_proposals?: boolean;
+  }
+  
+  export interface DelegationsData {
+    active_delegations: DelegationResponse[];
+    available_delegations: DelegationResponse[];
+    recommended_delegations: DelegationResponse[];
+  }
+  
+  const CHAIN_ID_MAP: Record<string, string> = {
+    'eip155:42161': 'arbitrum',
+    'eip155:8453': 'base'
+  };
+  
+  export const CHAIN_LOGOS: Record<string, string> = {
+    'arbitrum': '/chain-logos/arbitrum.svg',
+    'base': '/chain-logos/base.svg'
+  };
+  
+  export function getChainLogo(chainId: string): string | undefined {
+    const chainName = CHAIN_ID_MAP[chainId];
+    return chainName ? CHAIN_LOGOS[chainName] : undefined;
+  }
