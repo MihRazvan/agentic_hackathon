@@ -5,8 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import logging
-
-from ..wallet.manager import WalletManager
+from ..tally.client import TallyClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,45 +22,103 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/api/delegations/{address}")
-async def get_delegations(address: str):
-    """Get delegations for a wallet address."""
-    logger.info(f"Received request for address: {address}")
+class TokenHolding(BaseModel):
+    token_address: str
+    chain_id: str
+    balance: str
+
+class DelegationRequest(BaseModel):
+    token_holdings: List[TokenHolding]
+
+@app.post("/api/delegations/{address}")
+async def get_delegations(address: str, request: DelegationRequest):
+    """Get delegations for a wallet address based on token holdings."""
+    logger.info(f"Processing delegations for address: {address}")
+    logger.info(f"Token holdings: {request.token_holdings}")
     
     try:
-        # Initialize WalletManager
-        wallet_manager = WalletManager()
+        # Initialize Tally client
+        tally_client = TallyClient()
         
-        # Get DAO involvement
-        logger.info(f"Fetching DAO involvement for {address}")
-        result = await wallet_manager.get_dao_involvement(address)
-        logger.info(f"Raw result: {result}")
+        # Get all Base DAOs
+        orgs = tally_client.get_organizations()
         
-        # Process potential DAOs
-        active_delegations = result.get('active_delegations', [])
-        potential_daos = result.get('potential_daos', [])
+        if not orgs or 'data' not in orgs or 'organizations' not in orgs['data']:
+            raise HTTPException(status_code=500, detail="Failed to fetch organizations")
         
-        # Get recommended DAOs - take the top 3 most active
-        recommended = sorted(
-            potential_daos,
-            key=lambda x: (x.get('proposals_count', 0), x.get('delegates_count', 0)),
+        base_daos = []
+        for dao in orgs['data']['organizations']['nodes']:
+            # Only include Base DAOs
+            if 'eip155:8453' in dao.get('chainIds', []):
+                base_daos.append(dao)
+        
+        logger.info(f"Found {len(base_daos)} Base DAOs")
+        
+        # Get active delegations
+        active_delegations = []
+        for dao in base_daos:
+            delegate_info = tally_client.get_delegate_info(address, dao['id'])
+            if delegate_info and delegate_info.get('delegatorCount', 0) > 0:
+                active_delegations.append({
+                    "dao_name": dao['name'],
+                    "dao_slug": dao['slug'],
+                    "token_amount": f"{delegate_info.get('votesCount', 0)} votes",
+                    "chain_ids": dao['chainIds'],
+                    "proposals_count": dao.get('proposalsCount', 0),
+                    "has_active_proposals": dao.get('hasActiveProposals', False)
+                })
+        
+        # Get available delegations (based on token holdings)
+        available_delegations = []
+        for dao in base_daos:
+            # Skip if already delegating
+            if any(d['dao_slug'] == dao['slug'] for d in active_delegations):
+                continue
+                
+            # Check if user holds the governance token
+            token_id = dao.get('tokenIds', [None])[0]
+            if token_id:
+                for holding in request.token_holdings:
+                    if holding.token_address.lower() in token_id.lower():
+                        available_delegations.append({
+                            "dao_name": dao['name'],
+                            "dao_slug": dao['slug'],
+                            "token_amount": f"Balance: {holding.balance}",
+                            "chain_ids": dao['chainIds'],
+                            "proposals_count": dao.get('proposalsCount', 0),
+                            "has_active_proposals": dao.get('hasActiveProposals', False)
+                        })
+        
+        # Get recommended DAOs (most active ones)
+        recommended_daos = sorted(
+            [dao for dao in base_daos if dao['slug'] not in [d['dao_slug'] for d in active_delegations + available_delegations]],
+            key=lambda x: (x.get('proposalsCount', 0), x.get('delegatesCount', 0)),
             reverse=True
-        )[:3] if potential_daos else []
+        )[:3]
         
-        response_data = {
+        recommended_delegations = [
+            {
+                "dao_name": dao['name'],
+                "dao_slug": dao['slug'],
+                "token_amount": f"{dao.get('delegatesCount', 0)} delegates",
+                "chain_ids": dao['chainIds'],
+                "proposals_count": dao.get('proposalsCount', 0),
+                "has_active_proposals": dao.get('hasActiveProposals', False)
+            }
+            for dao in recommended_daos
+        ]
+        
+        return {
             "active_delegations": active_delegations,
-            "potential_daos": potential_daos,
-            "recommended_delegations": recommended
+            "available_delegations": available_delegations,
+            "recommended_delegations": recommended_delegations
         }
         
-        logger.info(f"Returning response: {response_data}")
-        return response_data
-        
     except Exception as e:
-        logger.error(f"Error processing delegations for {address}: {str(e)}")
+        logger.error(f"Error processing delegations: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Add a health check endpoint
 @app.get("/health")
 async def health_check():
+    """Health check endpoint."""
     return {"status": "healthy"}
