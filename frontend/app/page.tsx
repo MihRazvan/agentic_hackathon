@@ -134,7 +134,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 p-4">
         <div className="max-w-7xl mx-auto space-y-6">
           {!address ? (
@@ -157,12 +156,12 @@ export default function App() {
                 {/* DAO Updates */}
                 <section className="glass-card rounded-lg p-6">
                   <h2 className="text-xl font-semibold mb-4">DAO Updates</h2>
-                  <div className="space-y-4">
+                  <div className="h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20">
                     {updates.length > 0 ? (
                       <>
                         {urgentUpdates.length > 0 && (
                           <div className="space-y-2">
-                            <h3 className="text-sm font-medium text-red-400">Urgent Updates</h3>
+                            <h3 className="text-sm font-medium text-red-400 sticky top-0 bg-[var(--background)] py-2 z-10">Urgent Updates</h3>
                             {urgentUpdates.map(update => (
                               <UpdateCard key={update.id} update={update} />
                             ))}
@@ -170,7 +169,7 @@ export default function App() {
                         )}
                         {importantUpdates.length > 0 && (
                           <div className="space-y-2">
-                            <h3 className="text-sm font-medium text-yellow-400">Important Updates</h3>
+                            <h3 className="text-sm font-medium text-yellow-400 sticky top-0 bg-[var(--background)] py-2 z-10">Important Updates</h3>
                             {importantUpdates.map(update => (
                               <UpdateCard key={update.id} update={update} />
                             ))}
@@ -178,7 +177,7 @@ export default function App() {
                         )}
                         {fyiUpdates.length > 0 && (
                           <div className="space-y-2">
-                            <h3 className="text-sm font-medium text-blue-400">FYI</h3>
+                            <h3 className="text-sm font-medium text-blue-400 sticky top-0 bg-[var(--background)] py-2 z-10">FYI</h3>
                             {fyiUpdates.map(update => (
                               <UpdateCard key={update.id} update={update} />
                             ))}
