@@ -1,5 +1,5 @@
 import { DaoUpdate } from '../types/delegations';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 import { AlertTriangle, TrendingUp, ChevronRight, ArrowUpRight, LineChart, Wallet, Users } from 'lucide-react';
 
 interface UpdateCardProps {
@@ -22,6 +22,18 @@ const categoryIcons = {
 export function UpdateCard({ update }: UpdateCardProps) {
     const Icon = categoryIcons[update.category];
 
+    // Parse the ISO timestamp and format it
+    const formattedTime = (() => {
+        try {
+            // Ensure the timestamp is in ISO format
+            const date = parseISO(update.timestamp);
+            return formatDistanceToNow(date, { addSuffix: true });
+        } catch (error) {
+            console.error('Error formatting timestamp:', error);
+            return 'Recently';
+        }
+    })();
+
     return (
         <div className={`p-4 rounded-lg border ${priorityStyles[update.priority]} hover:border-opacity-50 transition-colors`}>
             <div className="flex items-start justify-between mb-2">
@@ -30,7 +42,7 @@ export function UpdateCard({ update }: UpdateCardProps) {
                     <span className="font-medium">{update.dao_name}</span>
                 </div>
                 <span className="text-sm opacity-70">
-                    {formatDistanceToNow(new Date(update.timestamp), { addSuffix: true })}
+                    {formattedTime}
                 </span>
             </div>
 

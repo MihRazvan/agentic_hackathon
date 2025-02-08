@@ -94,14 +94,22 @@ class DaoUpdatesAgent:
 
     def _analyze_proposal_impact(self, proposal_data: Dict) -> ImpactAnalysis:
         """Use LLM to analyze proposal impact."""
-        title = proposal_data.get('metadata', {}).get('title', '')
-        description = proposal_data.get('metadata', {}).get('description', '')
+        try:
+            title = proposal_data.get('metadata', {}).get('title', 'Unknown Proposal')
+            description = proposal_data.get('metadata', {}).get('description', 'No description available.')
 
-        context = f"""Analyze this governance proposal and determine its impact:
+            if not title.strip() or not description.strip():
+                return ImpactAnalysis(
+                    summary="No valid proposal data available",
+                    affected_areas=["Unknown"],
+                    risk_level="medium"
+                )
+
+            context = f"""Analyze this governance proposal and determine its impact:
 Proposal Title: {title}
 Description: {description}
 
-Please provide:
+Provide:
 1. A brief summary of potential impact
 2. Key areas affected
 3. Risk level (low/medium/high)
@@ -110,49 +118,28 @@ Summary: [your summary]
 Areas: [comma-separated list of affected areas]
 Risk: [low/medium/high]
 """
-        response = self._invoke_llm(context)
+            response = self._invoke_llm(context)
 
-        # Parse response safely
-        lines = response.split("\n")
-        try:
+            lines = response.split("\n")
+            if len(lines) < 3:
+                raise ValueError("Unexpected LLM response format.")
+
             summary = lines[0].replace('Summary:', '').strip()
             areas = [area.strip() for area in lines[1].replace('Areas:', '').strip().split(',')]
             risk = lines[2].replace('Risk:', '').strip().lower()
-            return ImpactAnalysis(summary=summary, affected_areas=areas, risk_level=risk)
-        except Exception:
-            return ImpactAnalysis(summary="Error analyzing proposal", affected_areas=["Unknown"], risk_level="medium")
 
-    def _analyze_governance_stats(self, stats: Dict) -> str:
-        """Use LLM to analyze governance statistics."""
-        context = f"""Analyze these DAO governance statistics:
-Active Proposals: {stats['active_count']}
-Passed Proposals: {stats['passed_count']}
-Failed Proposals: {stats['failed_count']}
-Pending Proposals: {stats['pending_count']}
-Provide a short summary explaining what these numbers mean.
-"""
-        return self._invoke_llm(context)
-
-    def _analyze_treasury_status(self, treasury_data: Dict) -> str:
-        """Use LLM to analyze treasury status."""
-        context = f"""Analyze this DAO's treasury status:
-Treasury Size: {treasury_data.get('treasury_size', 'Unknown')}
-Major Holdings: {treasury_data.get('major_holdings', [])}
-Recent Transactions: {treasury_data.get('recent_transactions', [])}
-Provide a summary explaining its significance.
-"""
-        return self._invoke_llm(context)
-
-    def _analyze_proposal_outcome(self, proposal: Dict, status: str) -> str:
-        """Use LLM to analyze proposal outcome."""
-        context = f"""Analyze this proposal's outcome:
-Title: {proposal['metadata']['title']}
-Status: {status.upper()}
-Votes For: {proposal.get('voteStats', {}).get('for', {}).get('votesCount', '0')}
-Votes Against: {proposal.get('voteStats', {}).get('against', {}).get('votesCount', '0')}
-Explain why the proposal {status} and its impact.
-"""
-        return self._invoke_llm(context)
+            return ImpactAnalysis(
+                summary=summary or "Could not analyze impact",
+                affected_areas=areas or ["Unknown"],
+                risk_level=risk if risk in ['low', 'medium', 'high'] else "medium"
+            )
+        except Exception as e:
+            logger.error(f"Error analyzing proposal impact: {str(e)}")
+            return ImpactAnalysis(
+                summary="Error analyzing proposal",
+                affected_areas=["Unknown"],
+                risk_level="medium"
+            )
 
     async def get_dao_updates(self, dao_slug: str, user_holdings: Optional[Dict] = None) -> List[DaoUpdate]:
         """Get AI-curated updates for a DAO."""
@@ -167,7 +154,7 @@ Explain why the proposal {status} and its impact.
 
             org_data = dao_data['data']['organization']
             proposals = self.tally_client.get_proposals(org_data['id'], include_active=False)
-            
+
             if proposals and 'data' in proposals and 'proposals' in proposals['data']:
                 for proposal in proposals['data']['proposals']['nodes']:
                     impact = self._analyze_proposal_impact(proposal)
@@ -175,7 +162,7 @@ Explain why the proposal {status} and its impact.
                         id=f"prop_{proposal['id']}",
                         dao_slug=dao_slug,
                         dao_name=org_data['name'],
-                        title=f"Proposal: {proposal['metadata']['title']}",
+                        title=f"Proposal: {proposal['metadata'].get('title', 'Unknown Proposal')}",
                         description=impact.summary,
                         priority='urgent' if impact.risk_level == 'high' else 'important',
                         category='proposal',
