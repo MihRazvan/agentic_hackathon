@@ -10,19 +10,17 @@ export async function getTokenHoldings(address: string): Promise<TokenHolding[]>
 
     try {
         console.log('Fetching portfolio data for address:', address);
-        console.log('Using chain ID:', `eip155:${base.id}`); // Log the chain ID we're using
+        console.log('Using chain ID:', `eip155:${base.id}`);
 
-        // Get portfolio data for the address
         const portfolioResponse = await getPortfolios({
             addresses: [address],
-            chains: [`eip155:${base.id}`], // Base network
-            includeNativeBalances: true, // Add this to include ETH balance
-            includeTokenBalances: true    // Add this to explicitly request token balances
+            chains: [`eip155:${base.id}`],
+            includeNativeBalances: true,
+            includeTokenBalances: true
         });
 
         console.log('Raw portfolio response:', JSON.stringify(portfolioResponse, null, 2));
 
-        // Safely access the portfolio data
         const portfolio = portfolioResponse?.portfolios?.[0];
         if (!portfolio) {
             console.log('No portfolio found');
@@ -31,23 +29,23 @@ export async function getTokenHoldings(address: string): Promise<TokenHolding[]>
 
         const holdings: TokenHolding[] = [];
 
-        // Add native ETH balance if present
-        if (portfolio.native_balance) {
+        // Extract ETH balance from tokenBalances
+        const ethBalance = portfolio.tokenBalances?.find(token => token.symbol === 'ETH');
+        if (ethBalance?.cryptoBalance) {
             holdings.push({
                 token_address: '0x0000000000000000000000000000000000000000', // ETH address
                 chain_id: `eip155:${base.id}`,
-                balance: portfolio.native_balance.raw_amount || '0'
+                balance: ethBalance.cryptoBalance
             });
         }
 
-        // Add other token balances
-        if (portfolio.tokens?.length) {
-            holdings.push(...portfolio.tokens.map(token => ({
-                token_address: token.address,
-                chain_id: `eip155:${base.id}`,
-                balance: token.raw_amount || '0'
-            })));
-        }
+        // Add other token balances (if any)
+        const otherTokens = portfolio.tokenBalances?.filter(token => token.symbol !== 'ETH') || [];
+        holdings.push(...otherTokens.map(token => ({
+            token_address: token.address || '',
+            chain_id: `eip155:${base.id}`,
+            balance: token.cryptoBalance || '0'
+        })));
 
         console.log('Final token holdings:', holdings);
         return holdings;
