@@ -107,7 +107,7 @@ class WalletManager:
             
         return filtered
     
-    async def get_dao_involvement(self, wallet_address: str, chain_id: str = None) -> Dict[str, Any]:
+    async def get_dao_involvement(self, wallet_address: str) -> Dict[str, Any]:
         """Get comprehensive information about user's DAO involvement."""
         try:
             involvement = {
@@ -121,29 +121,26 @@ class WalletManager:
                 "error": None
             }
             
-            # Get networks filtered by chain if specified
-            networks = self.filter_supported_networks(chain_id)
+            # Get networks
+            networks = self.filter_supported_networks()
             
-            # If no networks found, return early
             if not networks:
-                involvement["error"] = f"No supported DAOs found{' for chain ' + chain_id if chain_id else ''}"
+                involvement["error"] = "No supported DAOs found"
                 return involvement
             
             # Check each supported DAO
             for dao_slug, dao_info in networks.items():
                 try:
-                    # Get delegation info using the numeric org ID
+                    # Get delegation info
                     delegate_info = self.tally_client.get_delegate_info(wallet_address, dao_info['id'])
                     processed_info = self._process_delegation_info(delegate_info)
                     
+                    # Get token balance for this DAO
+                    balance_info = await self._check_token_balance(wallet_address, dao_info)
+                    has_tokens = balance_info and balance_info.get('balance', 0) > 0
+                    
                     if processed_info:
-                        # Update user info if available
-                        if not involvement["user_info"]["name"]:
-                            involvement["user_info"].update({
-                                "name": processed_info["user_info"]["name"],
-                                "ens": processed_info["user_info"]["ens"]
-                            })
-                        
+                        # User has active delegation
                         involvement["active_delegations"].append({
                             "dao_slug": dao_slug,
                             "dao_name": dao_info['name'],
@@ -151,15 +148,17 @@ class WalletManager:
                             "has_active_proposals": dao_info['has_active_proposals'],
                             **processed_info
                         })
-                    else:
-                        # Add to potential DAOs if no active delegation
+                    elif has_tokens:
+                        # User has tokens but no delegation
                         involvement["potential_daos"].append({
                             "dao_slug": dao_slug,
                             "dao_name": dao_info['name'],
                             "chain_ids": dao_info['chain_ids'],
                             "delegates_count": dao_info['delegates_count'],
                             "proposals_count": dao_info['proposals_count'],
-                            "has_active_proposals": dao_info['has_active_proposals']
+                            "has_active_proposals": dao_info['has_active_proposals'],
+                            "token_balance": balance_info['balance'],
+                            "token_symbol": balance_info['symbol']
                         })
                     
                 except Exception as e:
@@ -175,6 +174,29 @@ class WalletManager:
                 "user_info": {"address": wallet_address},
                 "error": str(e)
             }
+
+    async def _check_token_balance(self, wallet_address: str, dao_info: Dict) -> Dict:
+        """Check token balance for a specific DAO."""
+        try:
+            # Get token info from DAO
+            token_id = dao_info.get('token_id')
+            if not token_id:
+                return None
+                
+            # Use TallyClient to get token balance
+            balance = self.tally_client.get_token_balance(wallet_address, token_id)
+            
+            if balance:
+                return {
+                    'balance': balance.get('balance', 0),
+                    'symbol': balance.get('symbol', 'UNKNOWN')
+                }
+                
+        except Exception as e:
+            print(f"Error checking token balance: {str(e)}")
+            return None
+            
+        return None
 
     async def get_specific_dao_info(self, dao_slug: str) -> Dict[str, Any]:
         """Get detailed information about a specific DAO."""

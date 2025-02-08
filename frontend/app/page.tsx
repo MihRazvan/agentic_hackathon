@@ -173,10 +173,15 @@ export default function App() {
                     <div className="col-span-full text-center py-8 text-gray-400">
                       Loading available delegations...
                     </div>
-                  ) : delegationsData?.available_delegations?.length ? (
-                    delegationsData.available_delegations.map((delegation, i) => (
+                  ) : delegationsData?.potential_daos?.length ? (
+                    delegationsData.potential_daos.map((delegation, i) => (
                       <div key={`${delegation.dao_slug}-${i}`}>
-                        {renderDaoCard(delegation)}
+                        {renderDaoCard({
+                          ...delegation,
+                          token_amount: delegation.token_balance
+                            ? `${delegation.token_balance} ${delegation.token_symbol}`
+                            : `Available: ${delegation.delegates_count} delegates`
+                        })}
                       </div>
                     ))
                   ) : (
