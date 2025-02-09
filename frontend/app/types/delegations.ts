@@ -20,6 +20,20 @@ export interface DelegationsData {
     recommended_delegations: DelegationResponse[];
 }
 
+export interface DelegationResponse {
+    dao_name: string;
+    dao_slug: string;
+    token_amount: string;
+    chain_ids: string[];
+    votes_count?: string;
+    proposals_count?: number;
+    has_active_proposals?: boolean;
+    token_address?: string;
+    token_symbol?: string;
+    delegation_contract?: string;
+    delegate_address?: string;
+}
+
 export type UpdatePriority = 'urgent' | 'important' | 'fyi';
 export type UpdateCategory = 'proposal' | 'treasury' | 'governance' | 'social';
 
