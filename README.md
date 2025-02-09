@@ -32,6 +32,8 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 
 **TABULA** addresses these challenges by providing an intelligent, unified dashboard that transforms how users engage with DAOs. With our approach, we transmute raw governance data into clear, actionable insights.
 
+![1  banner (2)](https://github.com/user-attachments/assets/8e2beb15-be4e-4611-ad94-297c2ae27b36)
+
 ## Core Features
 
 ### Intelligent Dashboard
