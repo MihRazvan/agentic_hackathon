@@ -9,15 +9,17 @@ Tabula is an AI-powered governance hub on [Base](https://www.base.org/) that tra
 
 ## Index
 
-1. Overview - **TO ADD LINKS**
-2. Core Features
-3. User Flow
-4. Agent Architecture
-5. Advanced Features
-6. Technical Architecture
-7. Deployments
-8. Development Status
-9. Contact
+1. [Overview](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#1-overview)
+2. [Core Features](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#2-core-features)
+3. [User Flow](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#3-user-flow)
+4. [Agent Architecture](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#4-agent-architecture)
+5. [Advanced Features](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#5-advanced-features)
+6. [Technical Architecture](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#6-technical-architecture)
+7. [Deployments](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#7-deployments)
+8. [Development Status](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#8-development-status)
+9. [Contact](https://github.com/MihRazvan/agentic_hackathon/blob/main/README.md#9-contact)
+
+### Annex
 
 [Demo]() | [Prototype App](https://tabula.opsec.run/) | [Slide Deck](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/slide-deck.md) | [Contribution Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/contribution-guide.md) | [Design Files](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/design-files.md) | [UI Mockups](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/ui-mockups.md) | [Local Testing Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/local-testing-guide.md)
 
