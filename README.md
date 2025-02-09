@@ -21,7 +21,7 @@ Tabula is an AI-powered governance hub on [Base](https://www.base.org/) that tra
 
 ### Annex
 
-[Demo](https://youtu.be/BBEOu9iXQXo?si=9rxrMi5u_Tvvl3sF) | [Prototype App](https://tabula.opsec.run/) | [Slide Deck](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/slide-deck.md) | [Contribution Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/contribution-guide.md) | [Design Files](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/design-files.md) | [UI Mockups](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/ui-mockups.md) | [Local Testing Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/local-testing-guide.md)
+[Demo](https://youtu.be/BBEOu9iXQXo?si=9rxrMi5u_Tvvl3sF) | [Prototype App](https://tabula.opsec.run/) | [Slide Deck](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/slide-deck.md) | [Contribution Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/contribution-guide.md) | [Design Files + Figma](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/design-files.md) | [UI Mockups](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/ui-mockups.md) | [Local Testing Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/local-testing-guide.md)
 
 ## 1. Overview
 
