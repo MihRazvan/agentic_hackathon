@@ -1,22 +1,25 @@
-# Use Python 3.10 base image
-FROM python:3.10-slim
+# Use a lighter Python image
+FROM python:3.10-slim-buster
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements
-COPY requirements.txt .
+# Install only required system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+# Copy and install requirements first (for better caching)
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the agent folder
-COPY agent/ ./agent/
-
-# Copy main.py
+# Copy only needed files
+COPY agent/src/ai ./agent/src/ai
+COPY agent/src/tally ./agent/src/tally
 COPY main.py .
 
-# Expose port 3000
+# Expose port
 EXPOSE 3000
 
 # Command to run the app

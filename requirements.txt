@@ -1,7 +1,7 @@
-fastapi==0.109.0
-uvicorn==0.27.0.post1
-python-dotenv==1.0.0
-langchain-openai==0.0.5
-cdp-sdk==0.0.27
-cdp-langchain==0.0.13
-pydantic==2.6.1
+fastapi
+uvicorn
+python-dotenv
+langchain-openai
+cdp-sdk
+cdp-langchain
+pydantic

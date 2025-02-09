@@ -20,6 +20,7 @@ import { getTokenHoldings } from './services/tokens';
 import { getDelegations } from './services/delegations';
 import { getDaoUpdates } from './services/updates';
 import { UpdateCard } from './components/UpdateCard';
+import { NotificationSettings } from './components/NotificationSettings';
 import type { DelegationResponse, DelegationsData, DaoUpdate } from './types/delegations';
 import Image from 'next/image';
 
@@ -137,7 +138,14 @@ export default function App() {
             <>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <section className="glass-card rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4 mystic-text">The Ledger of Omens</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold mystic-text">The Ledger of Omens</h2>
+                    {address && (
+                      <div className="flex items-center gap-2">
+                        <NotificationSettings address={address} />
+                      </div>
+                    )}
+                  </div>
                   <div className="h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin">
                     {updates.length > 0 ? (
                       <>
@@ -200,7 +208,6 @@ export default function App() {
                 </section>
               </div>
 
-              {/* Available Delegations Section */}
               <section className="glass-card rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4 mystic-text">Available Delegations</h2>
                 <p className="text-ethereal-silver/70 mb-4">DAOs where you hold tokens and can delegate your voting power</p>
@@ -219,7 +226,6 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Recommended DAOs Section */}
               <section className="glass-card rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4 mystic-text">Discover More DAOs</h2>
                 <p className="text-ethereal-silver/70 mb-4">Explore these DAOs based on governance activity and community engagement</p>
