@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import Image from 'next/image';
-import { useAccount, useWalletClient, useSwitchChain } from 'wagmi';
+import { useAccount, useWalletClient, useSwitchChain, usePublicClient } from 'wagmi';
 import { parseUnits } from 'viem';
 import { base } from 'viem/chains';
 
@@ -14,11 +14,6 @@ const SEAMLESS_CONFIG = {
         address: "0x1c7a460413dd4e964f96d8dfc56e7223ce88cd85",
         symbol: "SEAM",
         decimals: 18
-    },
-    delegation: {
-        // Fixed address with correct checksum
-        address: "0x8578e222d144e8ac4a7e2d4d19696b4a45d3c382",
-        defaultDelegate: "0x8F9DF4115ac301d0e7dd087c270C2282fC7336ab"
     }
 };
 
@@ -26,21 +21,7 @@ const SEAMLESS_CONFIG = {
 const TOKEN_ABI = [
     {
         "inputs": [
-            { "name": "spender", "type": "address" },
-            { "name": "amount", "type": "uint256" }
-        ],
-        "name": "approve",
-        "outputs": [{ "name": "", "type": "bool" }],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    }
-];
-
-const DELEGATION_ABI = [
-    {
-        "inputs": [
-            { "name": "delegatee", "type": "address" },
-            { "name": "amount", "type": "uint256" }
+            { "name": "delegatee", "type": "address" }
         ],
         "name": "delegate",
         "outputs": [],
@@ -52,18 +33,19 @@ const DELEGATION_ABI = [
 export default function AlchemistPage() {
     const { address } = useAccount();
     const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
     const { switchChain } = useSwitchChain();
     const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([
         {
             role: 'assistant',
-            content: 'Greetings, seeker of wisdom. I am the Alchemist, your guide through the intricate realm of DAOs. I can help you delegate your SEAM tokens to Seamless Protocol. Try saying: "delegate 10 SEAM to Seamless Protocol"'
+            content: 'Greetings, seeker of wisdom. I am the Alchemist, your guide through the intricate realm of DAOs. Ask me about governance proposals, treasury allocations, or delegate your voting power to shape the future of decentralized organizations.'
         }
     ]);
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleDelegation = async (amount: string) => {
-        if (!walletClient || !address) {
+        if (!walletClient || !address || !publicClient) {
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: 'Please connect your wallet first.'
@@ -85,38 +67,26 @@ export default function AlchemistPage() {
                 throw new Error('Please switch your wallet to the Base network to continue.');
             }
 
-            // Parse amount to wei
-            const parsedAmount = parseUnits(amount, SEAMLESS_CONFIG.token.decimals);
-
-            // 1. Approve the delegation contract
-            const approveTx = await walletClient.writeContract({
+            // Execute the delegation directly on the token contract
+            const delegateTx = await walletClient.writeContract({
                 chain: base,
                 address: SEAMLESS_CONFIG.token.address as `0x${string}`,
                 abi: TOKEN_ABI,
-                functionName: 'approve',
-                args: [SEAMLESS_CONFIG.delegation.address, parsedAmount]
+                functionName: 'delegate',
+                args: [address] // Delegate to self
             });
 
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: `Approval transaction submitted: ${approveTx}`
+                content: `Delegation transaction submitted: ${delegateTx}`
             }]);
 
-            // Wait for approval to be mined
-            await walletClient.waitForTransactionReceipt({ hash: approveTx });
-
-            // 2. Execute the delegation
-            const delegateTx = await walletClient.writeContract({
-                chain: base,
-                address: SEAMLESS_CONFIG.delegation.address as `0x${string}`,
-                abi: DELEGATION_ABI,
-                functionName: 'delegate',
-                args: [SEAMLESS_CONFIG.delegation.defaultDelegate, parsedAmount]
-            });
+            // Wait for delegation to be mined
+            await publicClient.waitForTransactionReceipt({ hash: delegateTx });
 
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: `Delegation successful! Transaction hash: ${delegateTx}`
+                content: `Delegation successful! Your transaction has been confirmed.`
             }]);
 
         } catch (error) {
@@ -143,10 +113,20 @@ export default function AlchemistPage() {
         if (delegateMatch) {
             const [_, amount] = delegateMatch;
             await handleDelegation(amount);
+        } else if (userMessage.toLowerCase().includes('implications') || userMessage.toLowerCase().includes('proposal')) {
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Analyzing proposal implications requires access to on-chain data. Please connect your wallet to proceed with the analysis.'
+            }]);
+        } else if (userMessage.toLowerCase().includes('treasury')) {
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'To analyze treasury allocations, I need access to your DAO memberships. Please connect your wallet to proceed.'
+            }]);
         } else {
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: 'I understand delegation commands in the format: "delegate [amount] SEAM to Seamless Protocol". For example: "delegate 10 SEAM to Seamless Protocol"'
+                content: 'I can help you with:\n- Analyzing proposal implications\n- Predicting governance outcomes\n- Reviewing treasury allocations\n- Delegating voting power\n\nWhat would you like to know?'
             }]);
         }
     };
@@ -180,7 +160,7 @@ export default function AlchemistPage() {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Invoke the Alchemist's wisdom..."
-                                className="flex-1 bg-mystic-blue/20 text-black placeholder-ethereal-silver/50 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ethereal-silver/20"
+                                className="flex-1 bg-white text-black placeholder-gray-500 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ethereal-silver/20"
                                 disabled={isProcessing}
                             />
                             <button
@@ -215,10 +195,34 @@ export default function AlchemistPage() {
                             <div className="space-y-4">
                                 <div
                                     className="glass-card p-4 rounded-lg cursor-pointer hover:bg-card-hover transition-all"
-                                    onClick={() => setInput('delegate 10 SEAM to Seamless Protocol')}
+                                    onClick={() => setInput('delegate 5 SEAM to Seamless Protocol')}
                                 >
                                     <p className="text-sm text-ethereal-silver/70">
-                                        delegate 10 SEAM to Seamless Protocol
+                                        delegate 5 SEAM to Seamless Protocol
+                                    </p>
+                                </div>
+                                <div
+                                    className="glass-card p-4 rounded-lg cursor-pointer hover:bg-card-hover transition-all"
+                                    onClick={() => setInput('Break down the implications of my last active proposal')}
+                                >
+                                    <p className="text-sm text-ethereal-silver/70">
+                                        Break down the implications of my last active proposal
+                                    </p>
+                                </div>
+                                <div
+                                    className="glass-card p-4 rounded-lg cursor-pointer hover:bg-card-hover transition-all"
+                                    onClick={() => setInput('What would happen if this proposal passes?')}
+                                >
+                                    <p className="text-sm text-ethereal-silver/70">
+                                        What would happen if this proposal passes?
+                                    </p>
+                                </div>
+                                <div
+                                    className="glass-card p-4 rounded-lg cursor-pointer hover:bg-card-hover transition-all"
+                                    onClick={() => setInput("Show me my active DAO's treasury allocation")}
+                                >
+                                    <p className="text-sm text-ethereal-silver/70">
+                                        Show me my active DAO's treasury allocation
                                     </p>
                                 </div>
                             </div>
