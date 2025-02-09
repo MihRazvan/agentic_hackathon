@@ -9,17 +9,17 @@ Tabula is an AI-powered governance hub on [Base](https://www.base.org/) that tra
 
 ## Index
 
-1. Overview - TO ADD
+1. Overview - **TO ADD LINKS**
 2. Core Features
 3. User Flow
-4. Agent Architecture - TO ADD
+4. Agent Architecture
 5. Advanced Features
 6. Technical Architecture
-7. Contracts - TO ADD
+7. Deployments
 8. Development Status
 9. Contact
 
-[Demo]() | [Prototype App]() | [Slide Deck]() | [Contribution Guide]() | [Design Files]() | [UI Mockups]()
+[Demo]() | [Prototype App](https://tabula.opsec.run/) | [Slide Deck](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/slide-deck.md) | [Contribution Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/contribution-guide.md) | [Design Files](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/design-files.md) | [UI Mockups](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/ui-mockups.md) | [Local Testing Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/local-testing-guide.md)
 
 ## Overview
 
@@ -33,6 +33,8 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 **TABULA** addresses these challenges by providing an intelligent, unified dashboard that transforms how users engage with DAOs. With our approach, we transmute raw governance data into clear, actionable insights.
 
 ![1  banner (2)](https://github.com/user-attachments/assets/8e2beb15-be4e-4611-ad94-297c2ae27b36)
+
+---
 
 ## Core Features
 
@@ -61,13 +63,70 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 5. **Direct Action Integration:** Execute votes and delegations seamlessly through the chat interface.
 6. **ELI5 Mode:** Get simplified explanations for complex proposals.
 
+---
+
 ## User Flow
 
 ![4  user flow](https://github.com/user-attachments/assets/e626737f-5ccc-4e5b-91b1-5d4165f5f303)
 
+---
+
 ## Agent Architecture
 
+### Tally Agent (Data & Analytics)
 
+1. **Architecture:**
+- **Framework:** AgentKit with Tally API integration
+- **Core Function:** Governance data retrieval and analytics
+
+2. **Key Components:**
+- **TallyClient:** Handles GraphQL queries to Tally API
+- **Analytics Engine:** Processes DAO data
+- **Response Formatter:** Structures data for frontend
+
+3. **Capabilities:**
+- *Fetch proposal data*
+- *Analyze delegate performance*
+- *Track treasury movements*
+- *Monitor governance activity*
+
+### Alchemist Chatbot Agent (User Interaction)
+
+1. **Architecture:**
+- **Framework:** AgentKit + LangChain + Autonome deployment
+- **Core Function:** Natural language DAO interaction
+
+2. **Components:**
+- **LLM Integration:** GPT-4 for natural language processing
+- **CDP Toolkit:** For on-chain capabilities
+- **Intent Classifier:** Understands user requests
+- **Action Generator:** Prepares transaction parameters
+
+3. **Capabilities:**
+- *Natural language DAO interactions*
+- *Proposal explanations (ELI5)*
+- *Transaction preparation*
+- *Delegation guidance*
+
+### LLM Updates Curator Agent (Content)
+
+1. **Architecture:**
+- **Framework:** AgentKit + LangChain for content generation
+- **Core Function:** Curate and prioritize DAO updates
+
+2. **Components:**
+- **Update Analyzer:** Assesses update importance
+- **Content Generator:** Creates summaries
+- **Priority Engine:** Ranks updates
+- **Category Classifier:** Tags content type
+
+3. **Capabilities:**
+- *Analyze proposal impacts*
+- *Generate summaries*
+- *Prioritize updates (urgent/important/fyi)*
+- *Create action recommendations*
+
+---
 
 ## Advanced Features
 
@@ -95,6 +154,8 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 3. **Proposal Pattern Tracking:** Observe trends and patterns in proposals.
 4. **Historical Context Provision:** Gain background information to better understand current proposals.
 
+---
+
 ## Technical Architecture
 
 - **Base:** Network of choice for deployment.
@@ -107,14 +168,21 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 
 ![6  tech stack](https://github.com/user-attachments/assets/e50373fc-6c27-4091-acbe-10f5c53b28b1)
 
-## Contracts
+---
 
+## Deployments
 
+1. [Autonome deployment](https://autonome.alt.technology/agent-bjzmlr)
+2. [OneSec deployment](https://tabula.opsec.run/)
+
+---
 
 ## Development Status
 
 This project has been built for ETHGlobal Agentic Hackathon 2025.
-Further development envisioned is deployment across the Superchain and beyond!
+Further development envisioned is additional review and optimization, audit, exploring deployment across the Superchain and beyond!
+
+---
 
 ## Contact
 
