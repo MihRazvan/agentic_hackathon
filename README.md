@@ -19,7 +19,7 @@ Tabula is an AI-powered governance hub on [Base](https://www.base.org/) that tra
 8. Development Status
 9. Contact
 
-[Demo]() | [Prototype App]() | [Slide Deck]() | [Contribution Guide]() | [Design Files]()
+[Demo]() | [Prototype App]() | [Slide Deck]() | [Contribution Guide]() | [Design Files]() | [UI Mockups]()
 
 ## Overview
 
