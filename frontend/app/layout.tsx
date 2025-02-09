@@ -2,10 +2,16 @@ import '@coinbase/onchainkit/styles.css';
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from './providers';
+import { Cinzel } from 'next/font/google';
+
+const cinzel = Cinzel({
+  subsets: ['latin'],
+  variable: '--font-cinzel',
+});
 
 export const metadata: Metadata = {
   title: 'Tabula - The DAO Intelligence Hub',
-  description: 'Transforming raw governance data into actionable wisdom',
+  description: 'Transmute data into decisions',
 };
 
 export default function RootLayout({
@@ -14,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cinzel.variable}>
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -4,30 +4,34 @@
 
 :root {
   /* Alchemical theme colors */
-  --midnight-blue: #001366;
-  --navy-blue: #000080;
-  --prussian-blue: #003153;
-  --charcoal-black: #2A2A2A;
-  --metallic-silver: #C0C0C0;
+  --deep-blue: #000033;
+  --mystic-blue: #1a1a4d;
+  --ethereal-silver: #e6e6ff;
+  --arcane-purple: #4d0066;
+  --celestial-white: #ffffff;
 
   /* System colors */
-  --background: var(--charcoal-black);
-  --foreground: #FFFFFF;
-  --primary: var(--midnight-blue);
-  --secondary: var(--prussian-blue);
-  --accent: var(--metallic-silver);
+  --background: var(--deep-blue);
+  --foreground: var(--celestial-white);
+  --primary: var(--mystic-blue);
+  --secondary: var(--arcane-purple);
+  --accent: var(--ethereal-silver);
 
   /* Component specific */
-  --card-bg: rgba(0, 19, 102, 0.2);
-  --card-border: rgba(192, 192, 192, 0.1);
-  --gradient-start: var(--midnight-blue);
-  --gradient-end: var(--prussian-blue);
+  --card-bg: rgba(26, 26, 77, 0.3);
+  --card-border: rgba(230, 230, 255, 0.1);
+  --card-hover: rgba(26, 26, 77, 0.5);
+  --nav-bg: rgba(0, 0, 51, 0.95);
 }
 
+/* Base styles */
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', sans-serif;
+  background-image: url('/patterns/alchemical-pattern.svg');
+  background-repeat: repeat;
+  background-size: 300px;
+  font-family: 'Cinzel', serif;
 }
 
 /* Custom scrollbar */
@@ -40,12 +44,12 @@ body {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--card-border);
   border-radius: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--ethereal-silver);
 }
 
 /* Custom utilities */
@@ -53,12 +57,54 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  background: var(--card-hover);
+  border-color: var(--ethereal-silver);
+}
+
+.nav-glass {
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--card-border);
 }
 
 .alchemical-gradient {
   background: linear-gradient(135deg,
-      var(--gradient-start) 0%,
-      var(--gradient-end) 100%);
+      var(--mystic-blue) 0%,
+      var(--arcane-purple) 100%);
+}
+
+.mystic-text {
+  background: linear-gradient(to right,
+      var(--ethereal-silver) 0%,
+      var(--celestial-white) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.alchemical-border {
+  position: relative;
+}
+
+.alchemical-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(45deg,
+      transparent 0%,
+      var(--ethereal-silver) 50%,
+      transparent 100%);
+  z-index: -1;
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.alchemical-border:hover::before {
+  opacity: 0.6;
 }
 
 @layer utilities {
