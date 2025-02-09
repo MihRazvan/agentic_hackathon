@@ -2,6 +2,8 @@
 
 TABULA’s visual identity is deeply inspired by the mystical art of alchemy—transmuting raw materials into silver, just as the platform refines governance data into structured, actionable insight. The design draws from ancient esoteric symbols, medieval manuscripts, and sacred geometry to evoke a sense of structured wisdom, transformation, and hidden knowledge revealed.
 
+[Figma File](https://www.figma.com/design/Ak34PH2eM7OoZitaBKK8J9/UI%2FUX?node-id=0-1&t=bXoyANwqdfOh8lsD-1)
+
 ---
 
 ## Core Aesthetic Principles
