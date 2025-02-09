@@ -21,7 +21,7 @@ Tabula is an AI-powered governance hub on [Base](https://www.base.org/) that tra
 
 [Demo]() | [Prototype App](https://tabula.opsec.run/) | [Slide Deck](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/slide-deck.md) | [Contribution Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/contribution-guide.md) | [Design Files](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/design-files.md) | [UI Mockups](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/ui-mockups.md) | [Local Testing Guide](https://github.com/MihRazvan/agentic_hackathon/blob/main/docs/local-testing-guide.md)
 
-## Overview
+## 1. Overview
 
 In the complex world of Decentralized Autonomous Organizations (DAOs), participants face several critical challenges:
 
@@ -36,7 +36,7 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 
 ---
 
-## Core Features
+## 2. Core Features
 
 ### Intelligent Dashboard
 
@@ -65,13 +65,13 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 
 ---
 
-## User Flow
+## 3. User Flow
 
 ![4  user flow](https://github.com/user-attachments/assets/e626737f-5ccc-4e5b-91b1-5d4165f5f303)
 
 ---
 
-## Agent Architecture
+## 4. Agent Architecture
 
 ### Tally Agent (Data & Analytics)
 
@@ -128,7 +128,7 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 
 ---
 
-## Advanced Features
+## 5. Advanced Features
 
 ### Delegate-to-User Matchmaking
 
@@ -156,7 +156,7 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 
 ---
 
-## Technical Architecture
+## 6. Technical Architecture
 
 - **Base:** Network of choice for deployment.
 - **Tally API:** Integrates core DAO data seamlessly.
@@ -170,21 +170,21 @@ In the complex world of Decentralized Autonomous Organizations (DAOs), participa
 
 ---
 
-## Deployments
+## 7. Deployments
 
 1. [Autonome deployment](https://autonome.alt.technology/agent-bjzmlr)
 2. [OneSec deployment](https://tabula.opsec.run/)
 
 ---
 
-## Development Status
+## 8. Development Status
 
 This project has been built for ETHGlobal Agentic Hackathon 2025.
 Further development envisioned is additional review and optimization, audit, exploring deployment across the Superchain and beyond!
 
 ---
 
-## Contact
+## 9. Contact
 
 **Email:** jensei.eth@protonmail.com / razvan.mihailescu1996@gmail.com
 
