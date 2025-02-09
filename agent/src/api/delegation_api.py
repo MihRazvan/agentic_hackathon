@@ -1,5 +1,3 @@
-# agent/src/api/delegation_api.py
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -124,16 +122,22 @@ async def get_delegations(address: str, request: DelegationRequest):
         # Get active delegations
         active_delegations = []
         for dao in base_daos:
-            delegate_info = tally_client.get_delegate_info(address, dao['id'])
-            if delegate_info and delegate_info.get('delegatorCount', 0) > 0:
-                active_delegations.append({
-                    "dao_name": dao['name'],
-                    "dao_slug": dao['slug'],
-                    "token_amount": f"{delegate_info.get('votesCount', 0)} votes",
-                    "chain_ids": dao['chainIds'],
-                    "proposals_count": dao.get('proposalsCount', 0),
-                    "has_active_proposals": dao.get('hasActiveProposals', False)
-                })
+            try:
+                # Convert organization_id to integer
+                org_id = int(dao['id'])
+                delegate_info = tally_client.get_delegate_info(address, org_id)
+                if delegate_info and delegate_info.get('data', {}).get('delegate', {}).get('delegatorsCount', 0) > 0:
+                    active_delegations.append({
+                        "dao_name": dao['name'],
+                        "dao_slug": dao['slug'],
+                        "token_amount": f"{delegate_info.get('data', {}).get('delegate', {}).get('votesCount', 0)} votes",
+                        "chain_ids": dao['chainIds'],
+                        "proposals_count": dao.get('proposalsCount', 0),
+                        "has_active_proposals": dao.get('hasActiveProposals', False)
+                    })
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing delegation for DAO {dao['slug']}: {str(e)}")
+                continue
         
         # Get available delegations (based on token holdings)
         available_delegations = []

@@ -105,33 +105,53 @@ class DaoUpdatesAgent:
                     risk_level="medium"
                 )
 
-            context = f"""Analyze this governance proposal and determine its impact:
-Proposal Title: {title}
-Description: {description}
+            context = f"""Analyze this governance proposal and determine its impact. Format your response EXACTLY as shown below:
 
-Provide:
-1. A brief summary of potential impact
-2. Key areas affected
-3. Risk level (low/medium/high)
-Format:
-Summary: [your summary]
-Areas: [comma-separated list of affected areas]
-Risk: [low/medium/high]
-"""
+    Proposal Title: {title}
+    Description: {description}
+
+    Your analysis must follow this EXACT format:
+    Summary: [Write a brief summary of potential impact]
+    Areas: [List affected areas, comma-separated]
+    Risk: [ONLY use: low, medium, or high]
+
+    Example format:
+    Summary: This proposal updates the fee structure
+    Areas: fees, treasury, governance
+    Risk: medium"""
+
             response = self._invoke_llm(context)
+            
+            # More robust parsing
+            summary = ""
+            areas = []
+            risk = "medium"  # default risk level
 
-            lines = response.split("\n")
-            if len(lines) < 3:
-                raise ValueError("Unexpected LLM response format.")
+            # Parse each line
+            for line in response.split('\n'):
+                line = line.strip()
+                if line.lower().startswith('summary:'):
+                    summary = line[8:].strip()
+                elif line.lower().startswith('areas:'):
+                    areas_str = line[6:].strip()
+                    areas = [area.strip() for area in areas_str.split(',') if area.strip()]
+                elif line.lower().startswith('risk:'):
+                    risk_value = line[5:].strip().lower()
+                    if risk_value in ['low', 'medium', 'high']:
+                        risk = risk_value
 
-            summary = lines[0].replace('Summary:', '').strip()
-            areas = [area.strip() for area in lines[1].replace('Areas:', '').strip().split(',')]
-            risk = lines[2].replace('Risk:', '').strip().lower()
+            # Validate and provide defaults if needed
+            if not summary:
+                summary = "Could not analyze impact"
+            if not areas:
+                areas = ["Unknown"]
+            if risk not in ['low', 'medium', 'high']:
+                risk = "medium"
 
             return ImpactAnalysis(
-                summary=summary or "Could not analyze impact",
-                affected_areas=areas or ["Unknown"],
-                risk_level=risk if risk in ['low', 'medium', 'high'] else "medium"
+                summary=summary,
+                affected_areas=areas,
+                risk_level=risk
             )
         except Exception as e:
             logger.error(f"Error analyzing proposal impact: {str(e)}")
