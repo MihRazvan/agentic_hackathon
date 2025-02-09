@@ -3,6 +3,8 @@
 import os
 import sys
 from pathlib import Path
+from typing import Dict, List, Optional, Literal
+from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
@@ -13,112 +15,158 @@ from langgraph.prebuilt import create_react_agent
 from cdp_langchain.agent_toolkits import CdpToolkit
 from cdp_langchain.utils import CdpAgentkitWrapper
 
-# Configure logging
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configure file to persist agent's CDP MPC Wallet Data
-wallet_data_file = "wallet_data.txt"
+# Pydantic models for actions
+class DelegateAction(BaseModel):
+    type: Literal["delegate"] = "delegate"
+    dao_slug: str
+    token_address: str
+    amount: str
+    delegate_to: str
 
-def initialize_agent():
-    """Initialize the agent with CDP Agentkit."""
-    logger.info("Initializing DAO Agent...")
+class VoteAction(BaseModel):
+    type: Literal["vote"] = "vote"
+    dao_slug: str
+    proposal_id: str
+    vote: Literal["for", "against", "abstain"]
+
+class AgentResponse(BaseModel):
+    message: str
+    action: Optional[DelegateAction | VoteAction] = None
+
+class DAOAgent:
+    """Agent for DAO interactions and transaction preparation."""
     
-    # Initialize LLM
-    llm = ChatOpenAI(model="gpt-4")
-    
-    # Load any existing wallet data
-    wallet_data = None
-    if os.path.exists(wallet_data_file):
-        with open(wallet_data_file) as f:
-            wallet_data = f.read()
-            logger.info("Loaded existing wallet data")
-
-    # Configure CDP Agentkit Wrapper
-    values = {}
-    if wallet_data is not None:
-        values = {"cdp_wallet_data": wallet_data}
-    
-    agentkit = CdpAgentkitWrapper(**values)
-    
-    # Persist the agent's CDP MPC Wallet Data
-    wallet_data = agentkit.export_wallet()
-    with open(wallet_data_file, "w") as f:
-        f.write(wallet_data)
-        logger.info("Persisted wallet data")
-
-    # Initialize CDP Toolkit and get tools
-    cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(agentkit)
-    tools = cdp_toolkit.get_tools()
-    logger.info(f"Loaded {len(tools)} CDP tools")
-
-    # Store conversation history in memory
-    memory = MemorySaver()
-    config = {"configurable": {"thread_id": "Base DAO Assistant"}}
-
-    # Create ReAct Agent
-    return create_react_agent(
-        llm,
-        tools=tools,
-        checkpointer=memory,
-        state_modifier="""You are a knowledgeable DAO assistant focused on Base ecosystem DAOs, particularly:
-        - Seamless Protocol (DeFi lending)
-        - Internet Token DAO (Decentralized internet infrastructure)
-        - Gloom (Gaming platform)
-
-        You can:
-        1. Analyze proposals and their implications
-        2. Help understand treasury allocations
-        3. Guide users through delegation decisions
-        4. Execute on-chain actions when required
-
-        Network scope: All actions are on Base (base-sepolia for testing, base-mainnet for production)
-
-        Always:
-        - Be clear about implications of any on-chain actions
-        - Explain what will happen before executing actions
-        - If you need funds, request them from the faucet on base-sepolia
-        - If asked to do something beyond your capabilities, explain what you can't do and suggest using CDP SDK
+    def __init__(self):
+        """Initialize the DAO Agent."""
+        logger.info("Initializing DAO Agent...")
         
-        For full documentation, refer users to docs.cdp.coinbase.com"""
-    ), config
+        # Initialize LLM
+        self.llm = ChatOpenAI(model="gpt-4")
+        
+        # Initialize CDP Toolkit
+        self.agentkit = CdpAgentkitWrapper()
+        self.cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(self.agentkit)
+        self.tools = self.cdp_toolkit.get_tools()
 
-def run_chat_mode(agent_executor, config):
-    """Run the agent in interactive chat mode."""
-    print("Starting chat mode... Type 'exit' to end.")
-    
-    while True:
+        # DAO Constants
+        self.DAO_INFO = {
+            "seamless-protocol": {
+                "name": "Seamless Protocol",
+                "token_address": "0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85",
+                "description": "DeFi lending protocol on Base"
+            },
+            "internet-token-dao": {
+                "name": "Internet Token DAO",
+                "token_address": "0x968D6A288d7B024D5012c0B25d67A889E4E3eC19",
+                "description": "Internet infrastructure governance"
+            },
+            "gloom": {
+                "name": "Gloom",
+                "token_address": "0xbb5D04c40Fa063FAF213c4E0B8086655164269Ef",
+                "description": "Gaming platform"
+            }
+        }
+
+        # Memory for conversation context
+        self.memory = MemorySaver()
+        self.config = {"configurable": {"thread_id": "Base DAO Assistant"}}
+
+        # Create ReAct Agent
+        self.agent_executor = create_react_agent(
+            self.llm,
+            tools=self.tools,
+            checkpointer=self.memory,
+            state_modifier="""You are a knowledgeable DAO assistant that helps users interact with Base ecosystem DAOs, particularly:
+            - Seamless Protocol (DeFi lending)
+            - Internet Token DAO
+            - Gloom
+
+            Your main responsibilities:
+            1. Analyze user requests for DAO interactions
+            2. Prepare transaction parameters when users want to:
+               - Delegate tokens
+               - Vote on proposals
+               - Other governance actions
+            3. Provide clear explanations of what will happen
+            4. Generate proper transaction parameters for the frontend
+
+            Always:
+            - Check if the requested action requires on-chain interaction
+            - Format transaction parameters correctly
+            - Explain implications before suggesting actions
+            - Verify token addresses and amounts"""
+        )
+
+        logger.info("DAO Agent initialized successfully")
+
+    async def chat(self, message: str) -> AgentResponse:
+        """Process a chat message and generate appropriate response and actions."""
         try:
-            user_input = input("\nPrompt: ")
-            if user_input.lower() == "exit":
-                break
+            # First, analyze if this is an action request
+            analysis_prompt = f"""
+            Analyze this user request and determine if it requires an on-chain action:
 
-            # Run agent with user input
-            for chunk in agent_executor.stream(
-                {"messages": [HumanMessage(content=user_input)]}, config
-            ):
-                if "agent" in chunk:
-                    print(chunk["agent"]["messages"][0].content)
-                elif "tools" in chunk:
-                    print(chunk["tools"]["messages"][0].content)
-                print("-------------------")
+            User message: {message}
 
-        except KeyboardInterrupt:
-            print("\nGoodbye!")
-            sys.exit(0)
+            If it requires an action, specify:
+            1. Action type (delegate/vote)
+            2. DAO involved
+            3. Required parameters (amounts, addresses, etc)
 
-def main():
-    """Start the DAO agent."""
-    # Load environment variables
-    load_dotenv()
-    
-    # Initialize agent
-    print("Starting DAO Agent...")
-    agent_executor, config = initialize_agent()
-    
-    # Run in chat mode
-    run_chat_mode(agent_executor=agent_executor, config=config)
+            Return in this format:
+            ACTION_REQUIRED: yes/no
+            ACTION_TYPE: delegate/vote/none
+            DAO_SLUG: dao-name or none
+            PARAMETERS: key-value pairs or none
+            """
 
-if __name__ == "__main__":
-    main()
+            # Get initial analysis
+            analysis = self.llm.invoke([HumanMessage(content=analysis_prompt)])
+            analysis_lines = analysis.content.strip().split('\n')
+            analysis_dict = dict(line.split(': ') for line in analysis_lines)
+
+            if analysis_dict['ACTION_REQUIRED'] == 'yes':
+                # Handle delegation request
+                if analysis_dict['ACTION_TYPE'] == 'delegate':
+                    dao_slug = analysis_dict['DAO_SLUG']
+                    if dao_slug in self.DAO_INFO:
+                        dao = self.DAO_INFO[dao_slug]
+                        
+                        # Extract amount from message
+                        amount_context = f"""
+                        Extract the token amount from: {message}
+                        Return just the number, or 'all' if the user wants to delegate all tokens.
+                        """
+                        amount_response = self.llm.invoke([HumanMessage(content=amount_context)])
+                        amount = amount_response.content.strip()
+
+                        action = DelegateAction(
+                            dao_slug=dao_slug,
+                            token_address=dao['token_address'],
+                            amount=amount,
+                            delegate_to=dao['token_address']  # Default to self-delegation
+                        )
+
+                        return AgentResponse(
+                            message=f"I'll help you delegate {amount} tokens to {dao['name']}. This will require signing a transaction through your wallet. The delegation will use the token contract at {dao['token_address']}.",
+                            action=action
+                        )
+
+            # For non-action requests, get a normal response
+            response = await self.agent_executor.ainvoke(
+                {"messages": [HumanMessage(content=message)]}
+            )
+            
+            return AgentResponse(message=response['output'])
+
+        except Exception as e:
+            logger.error(f"Error in chat: {e}")
+            return AgentResponse(message=f"I encountered an error: {str(e)}")
+
+    def get_dao_info(self, dao_slug: str) -> Optional[Dict]:
+        """Get information about a specific DAO."""
+        return self.DAO_INFO.get(dao_slug)
