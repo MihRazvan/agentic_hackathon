@@ -234,3 +234,108 @@ class TallyClient:
 
         logging.error("Max retries reached. Failed to fetch data.")
         return None
+    def get_delegates(self, organization_id: str) -> Dict[str, Any]:
+        """Gets all delegates for a DAO."""
+        query = """
+        query GetDelegates($input: DelegatesInput!) {
+            delegates(input: $input) {
+                nodes {
+                    ... on Delegate {
+                        id
+                        account {
+                            address
+                            name
+                            ens
+                        }
+                        votesCount
+                        delegatorsCount
+                        statement {
+                            statement
+                            isSeekingDelegation
+                        }
+                    }
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "input": {
+                "filters": {
+                    "organizationId": organization_id
+                }
+            }
+        }
+        
+        return self._execute_query(query, variables)
+
+    def get_treasury_info(self, organization_id: str) -> Dict[str, Any]:
+        """Gets treasury information for a DAO."""
+        query = """
+        query GetTreasuryInfo($input: OrganizationInput!) {
+            organization(input: $input) {
+                id
+                name
+                tokenIds
+                tokenOwnersCount
+                delegatesVotesCount
+                metadata {
+                    description
+                }
+                governors {
+                    nodes {
+                        ... on Governor {
+                            id
+                            type
+                            quorum
+                            token {
+                                id
+                                name
+                                symbol
+                                supply
+                                decimals
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "input": {
+                "id": organization_id
+            }
+        }
+        
+        return self._execute_query(query, variables)
+
+    def _execute_query(self, query: str, variables: dict, retries: int = 5, delay: float = 2.0) -> dict:
+        """Helper function to execute GraphQL queries with rate limit handling."""
+        for attempt in range(retries):
+            try:
+                response = requests.post(
+                    self.endpoint,
+                    json={'query': query, 'variables': variables},
+                    headers=self.headers,
+                    timeout=10
+                )
+
+                if response.status_code == 429:  # Rate limit exceeded
+                    wait_time = delay * (2 ** attempt)  # Exponential backoff
+                    logging.warning(f"Rate limit hit. Retrying in {wait_time:.2f} seconds...")
+                    time.sleep(wait_time)
+                    continue
+
+                data = response.json()
+                if 'errors' in data:
+                    logging.error(f"GraphQL Errors: {data['errors']}")
+                    return None
+                return data
+
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Request error: {str(e)}")
+                return None
+
+        logging.error("Max retries reached. Failed to fetch data.")
+        return None
