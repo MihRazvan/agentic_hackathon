@@ -28,9 +28,10 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  background-image: url('/patterns/alchemical-pattern.svg');
-  background-repeat: repeat;
-  background-size: 300px;
+  background-image: url('/bg.png');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
   font-family: 'Cinzel', serif;
 }
 
@@ -71,12 +72,6 @@ body {
   border-bottom: 1px solid var(--card-border);
 }
 
-.alchemical-gradient {
-  background: linear-gradient(135deg,
-      var(--mystic-blue) 0%,
-      var(--arcane-purple) 100%);
-}
-
 .mystic-text {
   background: linear-gradient(to right,
       var(--ethereal-silver) 0%,
@@ -86,25 +81,10 @@ body {
   color: transparent;
 }
 
-.alchemical-border {
-  position: relative;
-}
-
-.alchemical-border::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  background: linear-gradient(45deg,
-      transparent 0%,
-      var(--ethereal-silver) 50%,
-      transparent 100%);
-  z-index: -1;
-  opacity: 0.3;
-  transition: opacity 0.3s ease;
-}
-
-.alchemical-border:hover::before {
-  opacity: 0.6;
+/* Logo styles */
+.tabula-logo {
+  width: 120px;
+  height: auto;
 }
 
 @layer utilities {

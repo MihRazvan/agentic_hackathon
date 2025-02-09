@@ -1,6 +1,19 @@
 import Link from 'next/link';
-import { CircleUserRound } from 'lucide-react';
-import { ConnectWallet } from '@coinbase/onchainkit/wallet';
+import Image from 'next/image';
+import {
+    ConnectWallet,
+    Wallet,
+    WalletDropdown,
+    WalletDropdownLink,
+    WalletDropdownDisconnect,
+} from '@coinbase/onchainkit/wallet';
+import {
+    Address,
+    Avatar,
+    Name,
+    Identity,
+    EthBalance,
+} from '@coinbase/onchainkit/identity';
 
 export function Navigation() {
     return (
@@ -9,18 +22,27 @@ export function Navigation() {
                 <div className="flex justify-between items-center h-16">
                     <div className="flex items-center gap-8">
                         <Link href="/" className="flex items-center gap-3">
-                            <div className="w-8 h-8">
-                                {/* Replace with your actual logo component */}
-                                <div className="w-full h-full rounded-full border border-ethereal-silver/30" />
-                            </div>
-                            <span className="text-xl font-medium mystic-text">TABULA</span>
+                            <Image
+                                src="/logo WhiteOnTransparent.png"
+                                alt="Tabula"
+                                width={120}
+                                height={40}
+                                className="tabula-logo"
+                            />
                         </Link>
 
                         <div className="hidden md:flex items-center gap-6">
                             <Link
                                 href="/dashboard"
-                                className="text-sm text-ethereal-silver/70 hover:text-ethereal-silver transition-colors"
+                                className="text-sm text-ethereal-silver/70 hover:text-ethereal-silver transition-colors flex items-center gap-2"
                             >
+                                <Image
+                                    src="/icon WhiteOnTransparent.png"
+                                    alt=""
+                                    width={24}
+                                    height={24}
+                                    className="nav-icon"
+                                />
                                 dashboard
                             </Link>
                             <Link
@@ -31,20 +53,44 @@ export function Navigation() {
                             </Link>
                             <Link
                                 href="/alchemist"
-                                className="text-sm text-ethereal-silver/70 hover:text-ethereal-silver transition-colors"
+                                className="text-sm text-ethereal-silver/70 hover:text-ethereal-silver transition-colors flex items-center gap-2"
                             >
+                                <Image
+                                    src="/small icon alchemist.png"
+                                    alt=""
+                                    width={24}
+                                    height={24}
+                                    className="nav-icon"
+                                />
                                 alchemist
                             </Link>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <ConnectWallet>
-                            <button className="flex items-center gap-2 px-4 py-2 rounded-lg glass-card hover:bg-card-hover transition-all">
-                                <CircleUserRound className="w-5 h-5" />
-                                <span className="text-sm">Connect</span>
-                            </button>
-                        </ConnectWallet>
+                        <Wallet>
+                            <ConnectWallet>
+                                <Avatar className="h-6 w-6" />
+                                <Name />
+                            </ConnectWallet>
+                            <WalletDropdown>
+                                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                                    <Avatar />
+                                    <Name />
+                                    <Address />
+                                    <EthBalance />
+                                </Identity>
+                                <WalletDropdownLink
+                                    icon="wallet"
+                                    href="https://keys.coinbase.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Wallet
+                                </WalletDropdownLink>
+                                <WalletDropdownDisconnect />
+                            </WalletDropdown>
+                        </Wallet>
                     </div>
                 </div>
             </div>

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from './providers';
 import { Cinzel } from 'next/font/google';
+import { Navigation } from './components/Navigation';
 
 const cinzel = Cinzel({
   subsets: ['latin'],
@@ -22,7 +23,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={cinzel.variable}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <Navigation />
+          {children}
+        </Providers>
       </body>
     </html>
   );
